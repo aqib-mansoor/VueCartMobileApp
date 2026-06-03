@@ -53,7 +53,7 @@ export default function FavoritesScreen() {
       const res = await apiClient.get(API_ENDPOINTS.FAVORITES);
       if (res.ok) {
         const data = await res.json();
-        const favList = data.favorites || data.data || [];
+        const favList = data.records || data.favorites || data.data || [];
         // Map to extract nested product properties
         const products = favList.map((fav: any) => fav.product).filter(Boolean);
         setFavorites(products);

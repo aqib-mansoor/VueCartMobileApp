@@ -83,7 +83,8 @@ export const useHomeData = () => {
       const res = await apiClient.get(API_ENDPOINTS.CATEGORIES);
       if (res.ok) {
         const data = await res.json();
-        setCategories(data);
+        const categoryList = data.records || data || [];
+        setCategories(categoryList);
       }
     } catch (err) {
       console.error("Error fetching categories:", err);
@@ -104,20 +105,21 @@ export const useHomeData = () => {
       const res = await apiClient.get(endpoint);
       if (res.ok) {
         const data = await res.json();
+        const records = data.records || data || {};
 
         if (selectedCategoryId) {
-          setProducts(data.products || []);
+          setProducts(records.products || records.data || []);
           setLastPage(1);
           setPage(1);
         } else {
-          const newProducts = data.data || [];
+          const newProducts = records.data || [];
           if (resetList) {
             setProducts(newProducts);
           } else {
             setProducts((prev) => [...prev, ...newProducts]);
           }
-          setPage(data.current_page);
-          setLastPage(data.last_page);
+          setPage(records.current_page || 1);
+          setLastPage(records.last_page || 1);
         }
       }
     } catch (err) {
@@ -135,7 +137,8 @@ export const useHomeData = () => {
       const res = await apiClient.get(`${API_ENDPOINTS.SEARCH_PRODUCTS}?query=${encodeURIComponent(query)}`);
       if (res.ok) {
         const data = await res.json();
-        setProducts(data.data || data || []);
+        const records = data.records || data || [];
+        setProducts(records.data || records || []);
         setPage(1);
         setLastPage(1);
       } else if (res.status === 400) {
@@ -155,8 +158,10 @@ export const useHomeData = () => {
       const res = await apiClient.get(API_ENDPOINTS.CART);
       if (res.ok) {
         const data = await res.json();
-        if (data.meta) {
-          setCartCount(data.meta.total_items || 0);
+        const records = data.records || data;
+        const meta = records.meta || data.meta;
+        if (meta) {
+          setCartCount(meta.total_items || 0);
         }
       }
     } catch (err) {
@@ -170,7 +175,7 @@ export const useHomeData = () => {
       const res = await apiClient.get(API_ENDPOINTS.FAVORITES);
       if (res.ok) {
         const data = await res.json();
-        const favList = data.favorites || data.data || [];
+        const favList = data.records || data.favorites || data.data || [];
         const ids = new Set<number>(favList.map((fav: any) => Number(fav.product_id)));
         setFavoritedProductIds(ids);
       }
@@ -193,13 +198,14 @@ export const useHomeData = () => {
         const res = await apiClient.get(endpoint);
         if (res.ok) {
           const data = await res.json();
+          const records = data.records || data || {};
           if (categoryId) {
-            setProducts(data.products || []);
+            setProducts(records.products || records.data || []);
             setLastPage(1);
           } else {
-            setProducts(data.data || []);
-            setPage(data.current_page);
-            setLastPage(data.last_page);
+            setProducts(records.data || []);
+            setPage(records.current_page || 1);
+            setLastPage(records.last_page || 1);
           }
         }
       } catch (err) {

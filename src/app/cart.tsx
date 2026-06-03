@@ -55,11 +55,13 @@ export default function CartScreen() {
       const res = await apiClient.get(API_ENDPOINTS.CART);
       if (res.ok) {
         const data = await res.json();
-        const items = data.cart || data.data || [];
+        const records = data.records || data;
+        const items = records.cart || records.data || data.cart || data.data || [];
         setCartItems(items);
+        const meta = records.meta || data.meta;
         setMeta({
-          total_items: data.meta?.total_items || items.reduce((a: number, i: CartItem) => a + i.quantity, 0),
-          grand_total: Number(data.meta?.grand_total || items.reduce((a: number, i: CartItem) => a + i.quantity * Number(i.price), 0)),
+          total_items: meta?.total_items || items.reduce((a: number, i: CartItem) => a + i.quantity, 0),
+          grand_total: Number(meta?.grand_total || items.reduce((a: number, i: CartItem) => a + i.quantity * Number(i.price), 0)),
         });
       }
     } catch (err) {

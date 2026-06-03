@@ -57,14 +57,17 @@ export default function CheckoutScreen() {
       const cartRes = await apiClient.get(API_ENDPOINTS.CART);
       if (cartRes.ok) {
         const d = await cartRes.json();
-        const items = d.cart || d.data || [];
+        const records = d.records || d;
+        const items = records.cart || records.data || d.cart || d.data || [];
         setCartItems(items);
-        setTotalAmount(Number(d.meta?.grand_total || items.reduce((a: number, i: CartItem) => a + i.quantity * Number(i.price), 0)));
+        const meta = records.meta || d.meta;
+        setTotalAmount(Number(meta?.grand_total || items.reduce((a: number, i: CartItem) => a + i.quantity * Number(i.price), 0)));
       }
       const addrRes = await apiClient.get(API_ENDPOINTS.ADDRESSES);
       if (addrRes.ok) {
         const d = await addrRes.json();
-        const list = d.addresses || d.data || [];
+        const records = d.records || d;
+        const list = Array.isArray(records) ? records : (records.addresses || records.data || d.addresses || d.data || []);
         setAddresses(list);
         if (list.length > 0) setSelectedAddressId(list[0].id);
       }
