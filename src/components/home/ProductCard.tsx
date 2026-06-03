@@ -1,7 +1,7 @@
 import React from "react";
 import { StyleSheet, View, Text, TouchableOpacity, Image, ActivityIndicator, Dimensions } from "react-native";
 import { Plus } from "lucide-react-native";
-import { THEME } from "../constants/theme";
+import { THEME } from "../../constants/theme";
 
 const { width } = Dimensions.get("window");
 const COLUMN_WIDTH = (width - THEME.spacing.lg * 3) / 2;
@@ -332,4 +332,3 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
 });
-

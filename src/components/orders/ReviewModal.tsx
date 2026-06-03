@@ -2,7 +2,7 @@ import React from "react";
 import { StyleSheet, View, Text, Modal, TextInput, TouchableOpacity, ActivityIndicator, Image } from "react-native";
 import { X, Star, Send } from "lucide-react-native";
 import { THEME } from "../../constants/theme";
-import { getProductImage } from "../ProductCard";
+import { getProductImage } from "../home/ProductCard";
 
 type ReviewModalProps = {
   visible: boolean;

@@ -30,7 +30,7 @@ import { THEME } from "../constants/theme";
 import { apiClient } from "../utils/api";
 import { API_ENDPOINTS } from "../constants/endpoints";
 import { useAuth } from "../context/AuthContext";
-import { getProductImage } from "../components/ProductCard";
+import { getProductImage } from "../components/home/ProductCard";
 import { useToast } from "../components/Toast";
 import { MenuItem } from "../components/profile/MenuItem";
 import { useConfirm } from "../components/ConfirmDialog";

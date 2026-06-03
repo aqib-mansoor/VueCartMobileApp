@@ -4,7 +4,7 @@ import { Check, ShoppingBag, Truck, Gift, CheckCircle } from "lucide-react-nativ
 import { StatusBar } from "expo-status-bar";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { THEME } from "../../constants/theme";
-import { getProductImage } from "../ProductCard";
+import { getProductImage } from "../home/ProductCard";
 import { formatOrderNumber } from "../../utils/orderUtils";
 
 type CartItem = {

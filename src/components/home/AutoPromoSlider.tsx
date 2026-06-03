@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { StyleSheet, View, Text, FlatList, Dimensions, ImageBackground } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { Sparkles, ShoppingBag, Truck } from "lucide-react-native";
-import { THEME } from "../constants/theme";
+import { THEME } from "../../constants/theme";
 
 const { width } = Dimensions.get("window");
 const CAROUSEL_WIDTH = width - THEME.spacing.lg * 2;

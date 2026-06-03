@@ -2,7 +2,7 @@ import React from "react";
 import { StyleSheet, View, Text, Image, TouchableOpacity } from "react-native";
 import { Trash2, Plus, Minus, Truck } from "lucide-react-native";
 import { THEME } from "../../constants/theme";
-import { getProductImage } from "../ProductCard";
+import { getProductImage } from "../home/ProductCard";
 
 type CartItem = {
   cart_item_id: number;

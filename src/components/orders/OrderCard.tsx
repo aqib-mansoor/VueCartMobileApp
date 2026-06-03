@@ -2,7 +2,7 @@ import React from "react";
 import { StyleSheet, View, Text, TouchableOpacity, Image } from "react-native";
 import { MapPin, XCircle, ChevronUp, ChevronDown, RotateCcw, Star } from "lucide-react-native";
 import { THEME } from "../../constants/theme";
-import { getProductImage } from "../ProductCard";
+import { getProductImage } from "../home/ProductCard";
 import { formatOrderNumber } from "../../utils/orderUtils";
 
 type OrderItem = {

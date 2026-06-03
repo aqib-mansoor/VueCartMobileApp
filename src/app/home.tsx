@@ -19,10 +19,10 @@ import { useHomeData } from "../hooks/useHomeData";
 import { styles } from "../styles/homeStyles";
 
 // Import custom modular components
-import { WelcomeHeader } from "../components/WelcomeHeader";
-import { AutoPromoSlider } from "../components/AutoPromoSlider";
-import { ProductCard } from "../components/ProductCard";
-import { ProductDetailModal } from "../components/ProductDetailModal";
+import { WelcomeHeader } from "../components/home/WelcomeHeader";
+import { AutoPromoSlider } from "../components/home/AutoPromoSlider";
+import { ProductCard } from "../components/home/ProductCard";
+import { ProductDetailModal } from "../components/home/ProductDetailModal";
 
 type Category = {
   id: number;
@@ -95,7 +95,6 @@ export default function HomeScreen() {
       <WelcomeHeader
         userName={user?.name}
         cartCount={cartCount}
-        onLogout={handleLogout}
         onCartPress={() => router.push("/cart" as any)}
         onOrdersPress={() => router.push("/orders" as any)}
         onProfilePress={() => router.push("/profile" as any)}

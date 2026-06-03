@@ -17,7 +17,7 @@ import { ChevronLeft, Trash2, ShoppingBag, Plus, Minus, ArrowRight, Percent, Tru
 import { THEME } from "../constants/theme";
 import { apiClient } from "../utils/api";
 import { API_ENDPOINTS } from "../constants/endpoints";
-import { getProductImage } from "../components/ProductCard";
+import { getProductImage } from "../components/home/ProductCard";
 import { useToast } from "../components/Toast";
 import { CartItemRow } from "../components/cart/CartItemRow";
 import { useConfirm } from "../components/ConfirmDialog";

@@ -2,10 +2,10 @@ import React, { useState, useEffect } from "react";
 import { StyleSheet, View, Text, TouchableOpacity, ScrollView, Image, ActivityIndicator } from "react-native";
 import { X, ShoppingCart, Sparkles, Star } from "lucide-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { THEME } from "../constants/theme";
+import { THEME } from "../../constants/theme";
 import { getProductImage } from "./ProductCard";
-import { apiClient } from "../utils/api";
-import { API_ENDPOINTS } from "../constants/endpoints";
+import { apiClient } from "../../utils/api";
+import { API_ENDPOINTS } from "../../constants/endpoints";
 
 type Product = {
   id: number;
@@ -352,7 +352,6 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: "800",
     color: THEME.colors.textPrimary,
-    marginTop: 6,
   },
   deliveryCard: {
     backgroundColor: "#F8FAFC",
