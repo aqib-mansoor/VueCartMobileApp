@@ -8,6 +8,8 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 
 import { Platform } from "react-native";
 
+import { apiLogger } from "./apiLogger";
+
 // Default Base URL read from environment variables or hardcoded local server
 const BASE_URL = process.env.EXPO_PUBLIC_API_URL || "http://192.168.18.235:8000/api";
 
@@ -20,6 +22,7 @@ export const apiClient = {
    * Execute an API HTTP request with automatic headers and token injection.
    */
   request: async (endpoint: string, options: RequestOptions = {}) => {
+    const method = options.method || "GET";
     // Format full request path
     const url = endpoint.startsWith("http") ? endpoint : `${BASE_URL}${endpoint}`;
 
@@ -48,7 +51,29 @@ export const apiClient = {
       fetchOptions.body = JSON.stringify(options.body);
     }
 
-    return fetch(url, fetchOptions);
+    const startTime = Date.now();
+    apiLogger.logRequest(method, endpoint, headers, options.body);
+
+    try {
+      const response = await fetch(url, fetchOptions);
+      
+      // Clone response to log content without exhausting stream
+      const responseClone = response.clone();
+      let responseData = null;
+      try {
+        responseData = await responseClone.json();
+      } catch {
+        try {
+          responseData = await responseClone.text();
+        } catch {}
+      }
+
+      apiLogger.logResponse(method, endpoint, response.status, startTime, responseData);
+      return response;
+    } catch (error: any) {
+      apiLogger.logResponse(method, endpoint, 0, startTime, { error: error.message || "Network Error" });
+      throw error;
+    }
   },
 
   get: (endpoint: string, options?: RequestOptions) => {
