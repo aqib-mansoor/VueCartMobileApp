@@ -23,6 +23,7 @@ import { apiClient } from "../utils/api";
 import { API_ENDPOINTS } from "../constants/endpoints";
 import { getProductImage } from "../components/ProductCard";
 import { useToast } from "../components/Toast";
+import { formatOrderNumber } from "../utils/orderUtils";
 
 type Address = { id: number; street: string; city: string; state: string; zip: string; country: string; };
 type CartItem = { cart_item_id: number; product_id: number; name: string; price: string | number; quantity: number; total_price: number; };
@@ -184,7 +185,7 @@ export default function CheckoutScreen() {
             <Text style={s.successEmoji}>🎉</Text>
             <Text style={s.successTitle}>Order Placed Successfully!</Text>
             <View style={s.orderIdPill}>
-              <Text style={s.orderIdPillText}>Order #{placedOrderId}</Text>
+              <Text style={s.orderIdPillText}>{formatOrderNumber(placedOrderId)}</Text>
             </View>
             <Text style={s.successSub}>
               Thank you for your purchase! Your order is being processed and you'll receive an email confirmation shortly.
@@ -224,7 +225,7 @@ export default function CheckoutScreen() {
                 <Image
                   source={{ uri: getProductImage(item.name) }}
                   style={s.successItemImg}
-                  defaultSource={require("../../assets/icon.png")}
+                  defaultSource={require("../../assets/images/icon.png")}
                 />
                 <View style={{ flex: 1 }}>
                   <Text style={s.successItemName} numberOfLines={1}>{item.name}</Text>
@@ -371,7 +372,7 @@ export default function CheckoutScreen() {
                   <Image
                     source={{ uri: getProductImage(item.name) }}
                     style={s.orderItemImg}
-                    defaultSource={require("../../assets/icon.png")}
+                    defaultSource={require("../../assets/images/icon.png")}
                   />
                   <View style={{ flex: 1 }}>
                     <Text style={s.orderItemName} numberOfLines={2}>{item.name}</Text>

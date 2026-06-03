@@ -33,6 +33,7 @@ import { apiClient } from "../utils/api";
 import { API_ENDPOINTS } from "../constants/endpoints";
 import { useAuth } from "../context/AuthContext";
 import { getProductImage } from "../components/ProductCard";
+import { useToast } from "../components/Toast";
 
 type Address = {
   id: number;
@@ -46,6 +47,7 @@ type Address = {
 export default function ProfileScreen() {
   const router = useRouter();
   const { authToken, login, logout } = useAuth();
+  const { showToast } = useToast();
 
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -97,7 +99,7 @@ export default function ProfileScreen() {
 
   const handleSaveProfile = async () => {
     if (!name.trim() || !email.trim()) {
-      Alert.alert("Validation", "Name and email are required fields.");
+      showToast({ message: "Name and email are required", type: "warning" });
       return;
     }
 
@@ -122,13 +124,13 @@ export default function ProfileScreen() {
 
         setPassword("");
         setShowEditForm(false);
-        Alert.alert("Success", "Profile updated successfully!");
+        showToast({ message: "Profile updated successfully!", type: "success" });
       } else {
         const data = await res.json().catch(() => ({}));
-        Alert.alert("Error", data.message || "Failed to update profile.");
+        showToast({ message: data.message || "Failed to update profile", type: "error" });
       }
     } catch (err) {
-      Alert.alert("Error", "Network connectivity issue.");
+      showToast({ message: "Network connectivity issue", type: "error" });
     } finally {
       setIsSaving(false);
     }

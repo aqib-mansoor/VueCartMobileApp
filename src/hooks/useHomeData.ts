@@ -1,9 +1,9 @@
 import { useState, useEffect } from "react";
-import { Alert } from "react-native";
 import { useRouter } from "expo-router";
 import { useAuth } from "../context/AuthContext";
 import { apiClient } from "../utils/api";
 import { API_ENDPOINTS } from "../constants/endpoints";
+import { useToast } from "../components/Toast";
 
 type Category = {
   id: number;
@@ -24,6 +24,7 @@ type Product = {
 export const useHomeData = () => {
   const { user, authToken, logout } = useAuth();
   const router = useRouter();
+  const { showToast } = useToast();
 
   // Core Data States
   const [products, setProducts] = useState<Product[]>([]);
@@ -193,14 +194,8 @@ export const useHomeData = () => {
   // Handle Add to Cart
   const handleAddToCart = async (productId: number) => {
     if (!authToken) {
-      Alert.alert(
-        "Authentication Required",
-        "Log in to your CartVue account to start adding items to your cart.",
-        [
-          { text: "Cancel", style: "cancel" },
-          { text: "Log In", onPress: () => router.push("/login" as any) },
-        ]
-      );
+      showToast({ message: "Please log in to add items to cart", type: "warning" });
+      setTimeout(() => router.push("/login" as any), 1200);
       return;
     }
 
@@ -208,14 +203,14 @@ export const useHomeData = () => {
     try {
       const res = await apiClient.post(API_ENDPOINTS.CART, { product_id: productId, quantity: 1 });
       if (res.ok) {
-        Alert.alert("Success 🎉", "Product added to your cart!");
+        showToast({ message: "Added to cart! 🎉", type: "success" });
         fetchCartCount();
       } else {
         const data = await res.json();
-        Alert.alert("Error", data.message || "Failed to add product to cart.");
+        showToast({ message: data.message || "Failed to add to cart", type: "error" });
       }
     } catch (err) {
-      Alert.alert("Error", "Could not connect to the server.");
+      showToast({ message: "Could not connect to the server", type: "error" });
     } finally {
       setIsAddingToCart(null);
     }

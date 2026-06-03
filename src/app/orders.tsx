@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
 import {
   StyleSheet,
   View,
@@ -6,47 +6,73 @@ import {
   TouchableOpacity,
   ScrollView,
   ActivityIndicator,
-  Alert,
   Modal,
   TextInput,
   Image,
-  Animated,
 } from "react-native";
 import { Stack, useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { ChevronLeft, Package, Star, X, Send, ChevronRight, Search, XCircle, Truck, RotateCcw, ShoppingCart, Filter } from "lucide-react-native";
+import {
+  ChevronLeft, Package, Star, X, Send, Search,
+  XCircle, Truck, RotateCcw, ShoppingBag, Clock,
+  CheckCircle, MapPin, ChevronDown, ChevronUp,
+} from "lucide-react-native";
 import { THEME } from "../constants/theme";
 import { apiClient } from "../utils/api";
 import { API_ENDPOINTS } from "../constants/endpoints";
 import { getProductImage } from "../components/ProductCard";
+import { useToast } from "../components/Toast";
+import { formatOrderNumber } from "../utils/orderUtils";
 
-type OrderItem = { product_id: number; name: string; quantity: number; price: string | number; };
-type Order = { id: number; total_amount: string | number; status: string; shipping_address: string; items: OrderItem[]; created_at: string; };
+type OrderItem = {
+  id: number;
+  product_id: number;
+  quantity: number;
+  price: string | number;
+  product?: {
+    id: number;
+    name: string;
+    price: string | number;
+  };
+};
+
+type Order = {
+  id: number;
+  total_amount: string | number;
+  status: string;
+  shipping_address: string;
+  items: OrderItem[];
+  created_at: string;
+};
 
 const TABS = ["All", "Pending", "Completed", "Cancelled"];
 
-const STATUS_MAP: Record<string, { bg: string; text: string; border: string; icon: any }> = {
-  pending: { bg: "#FEF9C3", text: "#A16207", border: "#FBBF24", icon: Package },
-  processing: { bg: "#DBEAFE", text: "#1D4ED8", border: "#60A5FA", icon: Package },
-  completed: { bg: "#DCFCE7", text: "#15803D", border: "#4ADE80", icon: Package },
-  cancelled: { bg: "#FEE2E2", text: "#DC2626", border: "#F87171", icon: XCircle },
+const STATUS_CONFIG: Record<string, { bg: string; text: string; border: string; label: string; Icon: any }> = {
+  pending:    { bg: "#FEF9C3", text: "#A16207", border: "#FCD34D", label: "Pending",    Icon: Clock },
+  processing: { bg: "#DBEAFE", text: "#1D4ED8", border: "#93C5FD", label: "Processing", Icon: Package },
+  completed:  { bg: "#DCFCE7", text: "#15803D", border: "#86EFAC", label: "Completed",  Icon: CheckCircle },
+  cancelled:  { bg: "#FEE2E2", text: "#DC2626", border: "#FCA5A5", label: "Cancelled",  Icon: XCircle },
 };
 
 export default function OrdersScreen() {
   const router = useRouter();
+  const { showToast } = useToast();
+
   const [orders, setOrders] = useState<Order[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("All");
   const [searchQuery, setSearchQuery] = useState("");
+  const [expandedOrders, setExpandedOrders] = useState<Set<number>>(new Set());
 
-  // Review Modal
+  // Review modal state
   const [showReviewModal, setShowReviewModal] = useState(false);
   const [reviewProductId, setReviewProductId] = useState<number | null>(null);
   const [reviewProductName, setReviewProductName] = useState("");
   const [reviewRating, setReviewRating] = useState(0);
   const [reviewComment, setReviewComment] = useState("");
   const [isSubmittingReview, setIsSubmittingReview] = useState(false);
+  const [hoveredStar, setHoveredStar] = useState(0);
 
   useEffect(() => { fetchOrders(); }, []);
 
@@ -54,42 +80,115 @@ export default function OrdersScreen() {
     setIsLoading(true);
     try {
       const res = await apiClient.get(API_ENDPOINTS.ORDERS);
-      if (res.ok) { const d = await res.json(); setOrders(d.orders || d.data || []); }
-    } catch (err) { console.error(err); }
-    finally { setIsLoading(false); }
+      if (res.ok) {
+        const d = await res.json();
+        const list = d.orders || d.data || [];
+        setOrders(list);
+        // Auto-expand first order
+        if (list.length > 0) setExpandedOrders(new Set([list[0].id]));
+      } else {
+        showToast({ message: "Failed to load orders", type: "error" });
+      }
+    } catch {
+      showToast({ message: "Network error loading orders", type: "error" });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const toggleExpand = async (orderId: number) => {
+    const isExpanding = !expandedOrders.has(orderId);
+    setExpandedOrders(prev => {
+      const next = new Set(prev);
+      if (next.has(orderId)) next.delete(orderId);
+      else next.add(orderId);
+      return next;
+    });
+
+    if (isExpanding) {
+      try {
+        const res = await apiClient.get(`${API_ENDPOINTS.ORDERS}/${orderId}`);
+        if (res.ok) {
+          const d = await res.json();
+          const latestOrder = d.order || d.data;
+          if (latestOrder) {
+            setOrders(prev => prev.map(o => o.id === orderId ? { ...o, ...latestOrder } : o));
+          }
+        }
+      } catch (err) {
+        console.warn("Failed to refresh order details:", err);
+      }
+    }
   };
 
   const handleCancelOrder = (orderId: number) => {
-    Alert.alert("Cancel Order", "Are you sure you want to cancel?", [
-      { text: "No", style: "cancel" },
-      { text: "Yes, Cancel", style: "destructive", onPress: async () => {
-        try {
-          const res = await apiClient.post(`${API_ENDPOINTS.ORDERS}/${orderId}/cancel`, {});
-          if (res.ok) { setOrders(p => p.map(o => o.id === orderId ? { ...o, status: "cancelled" } : o)); }
-          else { Alert.alert("Error", "Failed to cancel."); }
-        } catch { Alert.alert("Error", "Network error."); }
-      }},
-    ]);
+    // Use toast-style confirmation
+    showToast({ message: "Cancelling order...", type: "warning", duration: 1000 });
+    setTimeout(async () => {
+      try {
+        const res = await apiClient.post(`${API_ENDPOINTS.ORDERS}/${orderId}/cancel`, {});
+        if (res.ok) {
+          setOrders(p => p.map(o => o.id === orderId ? { ...o, status: "cancelled" } : o));
+          showToast({ message: "Order cancelled successfully", type: "success" });
+        } else {
+          showToast({ message: "Failed to cancel order", type: "error" });
+        }
+      } catch {
+        showToast({ message: "Network error — try again", type: "error" });
+      }
+    }, 800);
+  };
+
+  const openReviewModal = (productId: number, productName: string) => {
+    setReviewProductId(productId);
+    setReviewProductName(productName);
+    setReviewRating(0);
+    setReviewComment("");
+    setHoveredStar(0);
+    setShowReviewModal(true);
   };
 
   const handleReviewSubmit = async () => {
-    if (reviewRating === 0) { Alert.alert("Rating", "Please select a rating."); return; }
+    if (reviewRating === 0) {
+      showToast({ message: "Please select a star rating", type: "warning" });
+      return;
+    }
     setIsSubmittingReview(true);
     try {
-      const res = await apiClient.post(`${API_ENDPOINTS.PRODUCTS}/${reviewProductId}/reviews`, { rating: reviewRating, comment: reviewComment });
-      if (res.ok) { Alert.alert("Thank You!", "Review submitted successfully."); setShowReviewModal(false); setReviewRating(0); setReviewComment(""); }
-      else { Alert.alert("Error", "Failed to submit review."); }
-    } catch { Alert.alert("Error", "Network issue."); }
-    finally { setIsSubmittingReview(false); }
+      const res = await apiClient.post(`${API_ENDPOINTS.PRODUCTS}/${reviewProductId}/reviews`, {
+        rating: reviewRating,
+        comment: reviewComment,
+      });
+      if (res.ok) {
+        setShowReviewModal(false);
+        showToast({ message: "Review submitted! Thank you 🌟", type: "success" });
+        setReviewRating(0);
+        setReviewComment("");
+      } else {
+        showToast({ message: "Failed to submit review", type: "error" });
+      }
+    } catch {
+      showToast({ message: "Network error — try again", type: "error" });
+    } finally {
+      setIsSubmittingReview(false);
+    }
   };
 
   const filtered = orders.filter(o => {
     const tabOk = activeTab === "All" || o.status.toLowerCase() === activeTab.toLowerCase();
-    const searchOk = !searchQuery || o.items.some(i => i.name.toLowerCase().includes(searchQuery.toLowerCase())) || String(o.id).includes(searchQuery);
+    const formattedNum = formatOrderNumber(o.id, o.created_at).toLowerCase();
+    const searchOk =
+      !searchQuery ||
+      o.items?.some(i => i.product?.name?.toLowerCase().includes(searchQuery.toLowerCase())) ||
+      String(o.id).includes(searchQuery) ||
+      formattedNum.includes(searchQuery.toLowerCase());
     return tabOk && searchOk;
   });
 
-  const formatDate = (d: string) => new Date(d).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+  const formatDate = (d: string) =>
+    new Date(d).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+
+  const STAR_LABELS = ["", "Terrible", "Bad", "Okay", "Good", "Excellent!"];
 
   return (
     <SafeAreaView style={s.container} edges={["top", "bottom"]}>
@@ -98,142 +197,359 @@ export default function OrdersScreen() {
 
       {/* Header */}
       <View style={s.header}>
-        <TouchableOpacity onPress={() => router.back()} style={s.backBtn}><ChevronLeft size={24} color={THEME.colors.textPrimary} /></TouchableOpacity>
+        <TouchableOpacity onPress={() => router.back()} style={s.backBtn} activeOpacity={0.7}>
+          <ChevronLeft size={24} color={THEME.colors.textPrimary} />
+        </TouchableOpacity>
         <Text style={s.headerTitle}>My Orders</Text>
         <View style={{ width: 32 }} />
       </View>
 
-      {/* Search Bar */}
-      <View style={s.searchBar}>
-        <Search size={16} color={THEME.colors.textMuted} />
-        <TextInput
-          style={s.searchInput}
-          placeholder="Search orders by name or ID..."
-          placeholderTextColor={THEME.colors.textMuted}
-          value={searchQuery}
-          onChangeText={setSearchQuery}
-        />
-        {searchQuery.length > 0 && (
-          <TouchableOpacity onPress={() => setSearchQuery("")}><X size={16} color={THEME.colors.textMuted} /></TouchableOpacity>
-        )}
+      {/* Search */}
+      <View style={s.searchRow}>
+        <View style={s.searchBox}>
+          <Search size={15} color={THEME.colors.textMuted} />
+          <TextInput
+            style={s.searchInput}
+            placeholder="Search by product name or order ID..."
+            placeholderTextColor={THEME.colors.textMuted}
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+          />
+          {searchQuery.length > 0 && (
+            <TouchableOpacity onPress={() => setSearchQuery("")}>
+              <X size={15} color={THEME.colors.textMuted} />
+            </TouchableOpacity>
+          )}
+        </View>
       </View>
 
-      {/* Tabs */}
-      <View style={s.tabsRow}>
+      {/* Filter Tabs */}
+      <View style={s.tabsContainer}>
         {TABS.map(tab => {
           const active = tab === activeTab;
-          const count = tab === "All" ? orders.length : orders.filter(o => o.status.toLowerCase() === tab.toLowerCase()).length;
+          const count = tab === "All"
+            ? orders.length
+            : orders.filter(o => o.status.toLowerCase() === tab.toLowerCase()).length;
           return (
-            <TouchableOpacity key={tab} style={[s.tab, active && s.tabActive]} onPress={() => setActiveTab(tab)} activeOpacity={0.7}>
-              <Text style={[s.tabText, active && s.tabTextActive]}>{tab}</Text>
-              {count > 0 && <View style={[s.tabBadge, active && s.tabBadgeActive]}><Text style={[s.tabBadgeText, active && s.tabBadgeTextActive]}>{count}</Text></View>}
+            <TouchableOpacity
+              key={tab}
+              style={[s.tabItem, active && s.tabItemActive]}
+              onPress={() => setActiveTab(tab)}
+              activeOpacity={0.7}
+            >
+              <View style={s.tabTextWrapper}>
+                <Text style={[s.tabItemText, active && s.tabItemTextActive]}>{tab}</Text>
+                {count > 0 && (
+                  <View style={[s.tabItemBadge, active && s.tabItemBadgeActive]}>
+                    <Text style={[s.tabItemBadgeText, active && s.tabItemBadgeTextActive]}>{count}</Text>
+                  </View>
+                )}
+              </View>
+              {active && <View style={s.tabIndicator} />}
             </TouchableOpacity>
           );
         })}
       </View>
 
       {isLoading ? (
-        <View style={s.loadingCont}><ActivityIndicator size="large" color={THEME.colors.primary} /><Text style={s.loadingText}>Loading orders...</Text></View>
+        <View style={s.loadingCont}>
+          <ActivityIndicator size="large" color={THEME.colors.primary} />
+          <Text style={s.loadingText}>Loading your orders...</Text>
+        </View>
       ) : filtered.length === 0 ? (
         <View style={s.emptyCont}>
-          <View style={s.emptyIcon}><Package size={48} color={THEME.colors.textMuted} /></View>
+          <View style={s.emptyIcon}><Package size={44} color={THEME.colors.textMuted} /></View>
           <Text style={s.emptyTitle}>{searchQuery ? "No matching orders" : "No orders yet"}</Text>
-          <Text style={s.emptySub}>{searchQuery ? "Try a different search term" : "Your orders will appear here after checkout"}</Text>
+          <Text style={s.emptySub}>
+            {searchQuery ? "Try different search terms" : "Your orders will show up here once you place one"}
+          </Text>
+          {!searchQuery && (
+            <TouchableOpacity style={s.shopNowBtn} onPress={() => router.push("/home" as any)}>
+              <ShoppingBag size={15} color="#FFF" style={{ marginRight: 6 }} />
+              <Text style={s.shopNowText}>Shop Now</Text>
+            </TouchableOpacity>
+          )}
         </View>
       ) : (
         <ScrollView contentContainerStyle={s.listContent} showsVerticalScrollIndicator={false}>
           {filtered.map(order => {
-            const st = STATUS_MAP[order.status.toLowerCase()] || STATUS_MAP.pending;
-            const StatusIcon = st.icon;
+            const stKey = order.status.toLowerCase();
+            const st = STATUS_CONFIG[stKey] || STATUS_CONFIG.pending;
+            const isExpanded = expandedOrders.has(order.id);
+            const isCompleted = stKey === "completed";
+            const isPending = stKey === "pending";
+            const orderNum = formatOrderNumber(order.id, order.created_at);
+
             return (
               <View key={order.id} style={s.orderCard}>
-                {/* Order Header */}
-                <View style={s.orderHeader}>
-                  <View>
-                    <Text style={s.orderId}>Order #{order.id}</Text>
-                    <Text style={s.orderDate}>{formatDate(order.created_at)}</Text>
+                {/* Order Header Row */}
+                <TouchableOpacity 
+                  style={[s.orderHeader, isExpanded && s.orderHeaderExpanded]} 
+                  onPress={() => toggleExpand(order.id)} 
+                  activeOpacity={0.8}
+                >
+                  <View style={{ flex: 1 }}>
+                    <Text style={s.orderId}>{orderNum}</Text>
+                    <Text style={s.orderDate}>{formatDate(order.created_at)} · {order.items?.length || 0} item{(order.items?.length || 0) > 1 ? "s" : ""}</Text>
                   </View>
                   <View style={[s.statusBadge, { backgroundColor: st.bg, borderColor: st.border }]}>
-                    <StatusIcon size={12} color={st.text} />
-                    <Text style={[s.statusText, { color: st.text }]}>{order.status}</Text>
+                    <st.Icon size={12} color={st.text} style={{ marginRight: 2 }} />
+                    <Text style={[s.statusText, { color: st.text }]}>{st.label}</Text>
                   </View>
-                </View>
+                  {isExpanded ? <ChevronUp size={16} color={THEME.colors.textMuted} style={{ marginLeft: 6 }} /> : <ChevronDown size={16} color={THEME.colors.textMuted} style={{ marginLeft: 6 }} />}
+                </TouchableOpacity>
 
-                {/* Items with Images */}
-                {order.items.map((item, idx) => (
-                  <View key={idx} style={s.orderItemRow}>
-                    <Image source={{ uri: getProductImage(item.name) }} style={s.orderItemImg} />
-                    <View style={{ flex: 1 }}>
-                      <Text style={s.orderItemName} numberOfLines={1}>{item.name}</Text>
-                      <Text style={s.orderItemMeta}>Qty: {item.quantity} · ${Number(item.price).toFixed(2)}</Text>
+                {/* Collapsed Preview */}
+                {!isExpanded && order.items?.length > 0 && (
+                  <View style={s.collapsedPreview}>
+                    <View style={s.collapsedProductRow}>
+                      <Image
+                        source={{ uri: getProductImage(order.items[0].product?.name || "") }}
+                        style={s.collapsedProductImg}
+                        defaultSource={require("../../assets/images/icon.png")}
+                      />
+                      <View style={s.collapsedProductInfo}>
+                        <Text style={s.collapsedProductName} numberOfLines={1}>
+                          {order.items[0].product?.name || "Premium Product"}
+                        </Text>
+                        <Text style={s.collapsedProductMeta}>
+                          Qty: {order.items[0].quantity} · ${Number(order.items[0].price).toFixed(2)} each
+                        </Text>
+                        {order.items.length > 1 && (
+                          <Text style={s.collapsedMoreText}>
+                            + {order.items.length - 1} other item{(order.items.length - 1) > 1 ? "s" : ""}
+                          </Text>
+                        )}
+                      </View>
                     </View>
-                    {order.status.toLowerCase() === "completed" && (
-                      <TouchableOpacity
-                        style={s.reviewMiniBtn}
-                        onPress={() => { setReviewProductId(item.product_id); setReviewProductName(item.name); setShowReviewModal(true); }}
-                      >
-                        <Star size={12} color={THEME.colors.primary} /><Text style={s.reviewMiniBtnText}>Rate</Text>
-                      </TouchableOpacity>
-                    )}
+                    <View style={s.collapsedRightCol}>
+                      <Text style={s.collapsedTotalLabel}>Total</Text>
+                      <Text style={s.collapsedTotal}>${Number(order.total_amount).toFixed(2)}</Text>
+                    </View>
                   </View>
-                ))}
+                )}
 
-                {/* Footer */}
-                <View style={s.orderFooter}>
-                  <Text style={s.orderTotal}>Total: <Text style={{ color: THEME.colors.primary }}>${Number(order.total_amount).toFixed(2)}</Text></Text>
-                  <View style={s.orderActions}>
-                    {order.status.toLowerCase() === "pending" && (
-                      <TouchableOpacity style={s.cancelBtn} onPress={() => handleCancelOrder(order.id)}>
-                        <Text style={s.cancelBtnText}>Cancel</Text>
-                      </TouchableOpacity>
+                {/* Expanded: Full Details */}
+                {isExpanded && (
+                  <View style={s.expandedContent}>
+                    {/* Shipping Address Box */}
+                    <View style={s.addrBox}>
+                      <View style={s.addrHeader}>
+                        <MapPin size={13} color={THEME.colors.primary} />
+                        <Text style={s.addrTitle}>Delivery Address</Text>
+                      </View>
+                      <Text style={s.addrText}>{order.shipping_address}</Text>
+                    </View>
+
+                    {/* Progress Timeline */}
+                    {stKey !== "cancelled" ? (
+                      <View style={s.timelineContainer}>
+                        {/* Track row with line segments and dots */}
+                        <View style={s.timelineTrackRow}>
+                          {[0, 1, 2, 3].map((stepIdx) => {
+                            const steps = [
+                              { label: "Ordered", reached: true },
+                              { label: "Packed", reached: stKey === "processing" || stKey === "completed" },
+                              { label: "Shipped", reached: stKey === "completed" },
+                              { label: "Delivered", reached: stKey === "completed" }
+                            ];
+                            const step = steps[stepIdx];
+                            const activeColor = THEME.colors.primary;
+                            const isLast = stepIdx === 3;
+                            // A connector segment goes from current dot to next dot if current is reached
+                            const nextStepReached = !isLast && steps[stepIdx + 1].reached;
+
+                            return (
+                              <View key={stepIdx} style={[s.trackSegmentWrapper, isLast && { flex: 0 }]}>
+                                {/* Dot */}
+                                <View style={[
+                                  s.timelineDotCircle, 
+                                  { 
+                                    backgroundColor: step.reached ? activeColor : "#FFF", 
+                                    borderColor: step.reached ? activeColor : "#CBD5E1" 
+                                  }
+                                ]}>
+                                  {step.reached && <View style={s.timelineDotInner} />}
+                                </View>
+                                {/* Line */}
+                                {!isLast && (
+                                  <View style={[
+                                    s.timelineLineSegment, 
+                                    { backgroundColor: nextStepReached ? activeColor : "#E2E8F0" }
+                                  ]} />
+                                )}
+                              </View>
+                            );
+                          })}
+                        </View>
+                        {/* Text labels row */}
+                        <View style={s.timelineLabelsRow}>
+                          {["Ordered", "Packed", "Shipped", "Delivered"].map((lbl, sIdx) => {
+                            const steps = [
+                              { reached: true },
+                              { reached: stKey === "processing" || stKey === "completed" },
+                              { reached: stKey === "completed" },
+                              { reached: stKey === "completed" }
+                            ];
+                            const reached = steps[sIdx].reached;
+                            return (
+                              <Text key={sIdx} style={[s.timelineLabelText, reached && s.timelineLabelTextActive]}>
+                                {lbl}
+                              </Text>
+                            );
+                          })}
+                        </View>
+                      </View>
+                    ) : (
+                      <View style={s.cancelledBanner}>
+                        <XCircle size={15} color={THEME.colors.error} />
+                        <Text style={s.cancelledBannerText}>This order has been cancelled.</Text>
+                      </View>
                     )}
-                    {order.status.toLowerCase() === "completed" && (
-                      <TouchableOpacity style={s.buyAgainBtn} onPress={() => router.push("/home" as any)}>
-                        <RotateCcw size={12} color={THEME.colors.primary} /><Text style={s.buyAgainText}>Buy Again</Text>
-                      </TouchableOpacity>
-                    )}
+
+                    {/* Items List */}
+                    <Text style={s.itemsSectionTitle}>Order Items</Text>
+                    {order.items?.map((item, idx) => {
+                      const itemName = item.product?.name || "Premium Product";
+                      const itemImgUrl = getProductImage(itemName);
+                      return (
+                        <View key={idx} style={s.itemRow}>
+                          <Image
+                            source={{ uri: itemImgUrl }}
+                            style={s.itemImg}
+                            defaultSource={require("../../assets/images/icon.png")}
+                          />
+                          <View style={s.itemInfo}>
+                            <Text style={s.itemName} numberOfLines={2}>{itemName}</Text>
+                            <Text style={s.itemMeta}>
+                              Qty: {item.quantity} · ${Number(item.price).toFixed(2)} each
+                            </Text>
+                            <Text style={s.itemSubtotal}>
+                              Subtotal: ${(item.quantity * Number(item.price)).toFixed(2)}
+                            </Text>
+                          </View>
+                          {/* Rate item button */}
+                          {isCompleted && (
+                            <TouchableOpacity
+                              style={s.reviewBtn}
+                              onPress={() => openReviewModal(item.product_id, itemName)}
+                              activeOpacity={0.8}
+                            >
+                              <Star size={13} color={THEME.colors.primary} fill={THEME.colors.primary} />
+                              <Text style={s.reviewBtnText}>Rate</Text>
+                            </TouchableOpacity>
+                          )}
+                        </View>
+                      );
+                    })}
+
+                    {/* Order Footer summary info & Actions */}
+                    <View style={s.orderFooter}>
+                      <View>
+                        <Text style={s.footerTotalLabel}>Grand Total</Text>
+                        <Text style={s.footerTotalVal}>${Number(order.total_amount).toFixed(2)}</Text>
+                      </View>
+                      <View style={s.footerActions}>
+                        {isPending && (
+                          <TouchableOpacity
+                            style={s.cancelBtn}
+                            onPress={() => handleCancelOrder(order.id)}
+                            activeOpacity={0.8}
+                          >
+                            <XCircle size={13} color={THEME.colors.error} />
+                            <Text style={s.cancelBtnText}>Cancel</Text>
+                          </TouchableOpacity>
+                        )}
+                        {isCompleted && (
+                          <TouchableOpacity
+                            style={s.buyAgainBtn}
+                            onPress={() => router.push("/home" as any)}
+                            activeOpacity={0.8}
+                          >
+                            <RotateCcw size={13} color="#FFF" />
+                            <Text style={s.buyAgainText}>Buy Again</Text>
+                          </TouchableOpacity>
+                        )}
+                      </View>
+                    </View>
                   </View>
-                </View>
+                )}
               </View>
             );
           })}
         </ScrollView>
       )}
 
-      {/* Review Modal */}
+      {/* ─── Review Modal ─── */}
       <Modal visible={showReviewModal} transparent animationType="slide" onRequestClose={() => setShowReviewModal(false)}>
         <View style={s.modalOverlay}>
           <View style={s.modalSheet}>
             <View style={s.modalHandle} />
-            <View style={s.modalHeader}>
-              <Text style={s.modalTitle}>Rate Product</Text>
-              <TouchableOpacity onPress={() => setShowReviewModal(false)}><X size={20} color={THEME.colors.textSecondary} /></TouchableOpacity>
-            </View>
-            <Text style={s.modalProduct}>{reviewProductName}</Text>
 
-            <Text style={s.ratingPrompt}>How was your experience?</Text>
+            <View style={s.modalHeader}>
+              <Text style={s.modalTitle}>Rate Your Purchase</Text>
+              <TouchableOpacity onPress={() => setShowReviewModal(false)} style={s.modalClose}>
+                <X size={20} color={THEME.colors.textSecondary} />
+              </TouchableOpacity>
+            </View>
+
+            {/* Product being reviewed */}
+            <View style={s.reviewProductRow}>
+              <Image
+                source={{ uri: getProductImage(reviewProductName) }}
+                style={s.reviewProductImg}
+                defaultSource={require("../../assets/images/icon.png")}
+              />
+              <View style={{ flex: 1 }}>
+                <Text style={s.reviewProductName} numberOfLines={2}>{reviewProductName}</Text>
+                <Text style={s.reviewProductHint}>Share your experience</Text>
+              </View>
+            </View>
+
+            {/* Stars */}
+            <Text style={s.ratingPrompt}>How would you rate this product?</Text>
             <View style={s.starsRow}>
               {[1, 2, 3, 4, 5].map(n => (
-                <TouchableOpacity key={n} onPress={() => setReviewRating(n)} activeOpacity={0.7}>
-                  <Star size={36} color={n <= reviewRating ? "#FBBF24" : "#D1D5DB"} fill={n <= reviewRating ? "#FBBF24" : "transparent"} />
+                <TouchableOpacity key={n} onPress={() => setReviewRating(n)} activeOpacity={0.7} style={s.starBtn}>
+                  <Star
+                    size={42}
+                    color={n <= reviewRating ? "#FBBF24" : "#E2E8F0"}
+                    fill={n <= reviewRating ? "#FBBF24" : "transparent"}
+                    strokeWidth={1.5}
+                  />
                 </TouchableOpacity>
               ))}
             </View>
-            <Text style={s.ratingLabel}>{["", "Terrible", "Bad", "Okay", "Good", "Excellent"][reviewRating] || "Tap a star"}</Text>
+            {reviewRating > 0 && (
+              <Text style={s.ratingLabel}>{STAR_LABELS[reviewRating]}</Text>
+            )}
 
+            {/* Comment */}
             <TextInput
               style={s.commentInput}
-              placeholder="Write your review (optional)..."
+              placeholder="Write your review here (optional)..."
               placeholderTextColor={THEME.colors.textMuted}
               multiline
-              numberOfLines={4}
+              numberOfLines={3}
               textAlignVertical="top"
               value={reviewComment}
               onChangeText={setReviewComment}
             />
 
-            <TouchableOpacity style={s.submitReviewBtn} onPress={handleReviewSubmit} disabled={isSubmittingReview} activeOpacity={0.9}>
-              {isSubmittingReview ? <ActivityIndicator size="small" color="#FFF" /> : <><Send size={16} color="#FFF" style={{ marginRight: 8 }} /><Text style={s.submitReviewText}>Submit Review</Text></>}
+            <TouchableOpacity
+              style={[s.submitBtn, reviewRating === 0 && s.submitBtnDisabled]}
+              onPress={handleReviewSubmit}
+              disabled={isSubmittingReview || reviewRating === 0}
+              activeOpacity={0.9}
+            >
+              {isSubmittingReview ? (
+                <ActivityIndicator size="small" color="#FFF" />
+              ) : (
+                <>
+                  <Send size={16} color="#FFF" style={{ marginRight: 8 }} />
+                  <Text style={s.submitBtnText}>Submit Review</Text>
+                </>
+              )}
             </TouchableOpacity>
           </View>
         </View>
@@ -243,66 +559,382 @@ export default function OrdersScreen() {
 }
 
 const s = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#F1F5F9" },
-  header: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingHorizontal: 16, paddingVertical: 12, backgroundColor: "#FFF", borderBottomWidth: 1, borderColor: "#E2E8F0" },
+  container: { flex: 1, backgroundColor: "#F6F8FA" },
+  header: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingHorizontal: 16, paddingVertical: 14, backgroundColor: "#FFF", borderBottomWidth: 1, borderColor: "#EEF2F6" },
   backBtn: { padding: 4 },
-  headerTitle: { fontSize: 17, fontWeight: "900", color: THEME.colors.textPrimary },
+  headerTitle: { fontSize: 18, fontWeight: "900", color: THEME.colors.textPrimary },
 
-  searchBar: { flexDirection: "row", alignItems: "center", backgroundColor: "#FFF", marginHorizontal: 12, marginTop: 10, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 6, borderWidth: 1, borderColor: "#E2E8F0", gap: 8 },
-  searchInput: { flex: 1, fontSize: 13, color: THEME.colors.textPrimary, paddingVertical: 4 },
+  // Search
+  searchRow: { paddingHorizontal: 16, paddingTop: 12, paddingBottom: 6, backgroundColor: "#FFF" },
+  searchBox: { flexDirection: "row", alignItems: "center", backgroundColor: "#F3F4F6", borderRadius: 14, paddingHorizontal: 14, paddingVertical: 10, gap: 8, borderWidth: 1, borderColor: "#E5E7EB" },
+  searchInput: { flex: 1, fontSize: 13, color: THEME.colors.textPrimary, fontWeight: "500" },
 
-  tabsRow: { flexDirection: "row", backgroundColor: "#FFF", paddingHorizontal: 12, paddingVertical: 8, gap: 6, marginTop: 6, borderBottomWidth: 1, borderColor: "#E2E8F0" },
-  tab: { flex: 1, flexDirection: "row", justifyContent: "center", alignItems: "center", paddingVertical: 8, borderRadius: 10, backgroundColor: "#F1F5F9", gap: 4 },
-  tabActive: { backgroundColor: THEME.colors.primary },
-  tabText: { fontSize: 11, fontWeight: "800", color: THEME.colors.textSecondary },
-  tabTextActive: { color: "#FFF" },
-  tabBadge: { backgroundColor: "#E2E8F0", borderRadius: 8, paddingHorizontal: 5, paddingVertical: 1 },
-  tabBadgeActive: { backgroundColor: "rgba(255,255,255,0.3)" },
-  tabBadgeText: { fontSize: 9, fontWeight: "800", color: THEME.colors.textSecondary },
-  tabBadgeTextActive: { color: "#FFF" },
+  // Tabs
+  tabsContainer: {
+    flexDirection: "row",
+    backgroundColor: "#FFF",
+    borderBottomWidth: 1,
+    borderColor: "#EEF2F6",
+  },
+  tabItem: {
+    flex: 1,
+    alignItems: "center",
+    paddingVertical: 14,
+    position: "relative",
+  },
+  tabItemActive: {},
+  tabTextWrapper: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+  },
+  tabItemText: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: THEME.colors.textSecondary,
+  },
+  tabItemTextActive: {
+    color: THEME.colors.primary,
+    fontWeight: "900",
+  },
+  tabItemBadge: {
+    backgroundColor: "#F3F4F6",
+    borderRadius: 8,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    minWidth: 18,
+    alignItems: "center",
+  },
+  tabItemBadgeActive: {
+    backgroundColor: THEME.colors.primary + "15",
+  },
+  tabItemBadgeText: {
+    fontSize: 9,
+    fontWeight: "900",
+    color: THEME.colors.textSecondary,
+  },
+  tabItemBadgeTextActive: {
+    color: THEME.colors.primary,
+  },
+  tabIndicator: {
+    position: "absolute",
+    bottom: 0,
+    left: "20%",
+    right: "20%",
+    height: 3,
+    backgroundColor: THEME.colors.primary,
+    borderTopLeftRadius: 3,
+    borderTopRightRadius: 3,
+  },
 
   loadingCont: { flex: 1, justifyContent: "center", alignItems: "center" },
   loadingText: { marginTop: 8, color: THEME.colors.textSecondary, fontWeight: "600" },
+
   emptyCont: { flex: 1, justifyContent: "center", alignItems: "center", paddingHorizontal: 32 },
-  emptyIcon: { width: 100, height: 100, borderRadius: 50, backgroundColor: "#F1F5F9", justifyContent: "center", alignItems: "center", marginBottom: 16 },
-  emptyTitle: { fontSize: 18, fontWeight: "900", color: THEME.colors.textPrimary, marginBottom: 4 },
-  emptySub: { fontSize: 13, color: THEME.colors.textSecondary, textAlign: "center", lineHeight: 20 },
+  emptyIcon: { width: 96, height: 96, borderRadius: 48, backgroundColor: "#FFF", justifyContent: "center", alignItems: "center", marginBottom: 16, shadowColor: "#000", shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.05, shadowRadius: 10, elevation: 1 },
+  emptyTitle: { fontSize: 18, fontWeight: "900", color: THEME.colors.textPrimary, marginBottom: 6 },
+  emptySub: { fontSize: 13, color: THEME.colors.textSecondary, textAlign: "center", lineHeight: 20, marginBottom: 20 },
+  shopNowBtn: { flexDirection: "row", alignItems: "center", backgroundColor: THEME.colors.primary, paddingHorizontal: 24, paddingVertical: 12, borderRadius: 14 },
+  shopNowText: { color: "#FFF", fontWeight: "800", fontSize: 14 },
 
-  listContent: { padding: 12, gap: 10, paddingBottom: 24 },
+  listContent: { padding: 14, gap: 14, paddingBottom: 36 },
 
-  orderCard: { backgroundColor: "#FFF", borderRadius: 16, borderWidth: 1, borderColor: "#E2E8F0", overflow: "hidden" },
-  orderHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", padding: 14, borderBottomWidth: 1, borderColor: "#F1F5F9" },
-  orderId: { fontSize: 14, fontWeight: "900", color: THEME.colors.textPrimary },
-  orderDate: { fontSize: 11, color: THEME.colors.textSecondary, marginTop: 2 },
-  statusBadge: { flexDirection: "row", alignItems: "center", gap: 4, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8, borderWidth: 1 },
-  statusText: { fontSize: 10, fontWeight: "800", textTransform: "capitalize" },
+  // Order Card
+  orderCard: { 
+    backgroundColor: "#FFF", 
+    borderRadius: 18, 
+    borderWidth: 1, 
+    borderColor: "#E5E7EB", 
+    overflow: "hidden",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.04,
+    shadowRadius: 10,
+    elevation: 2,
+  },
 
-  orderItemRow: { flexDirection: "row", alignItems: "center", gap: 10, paddingHorizontal: 14, paddingVertical: 8, borderBottomWidth: 1, borderColor: "#F8FAFC" },
-  orderItemImg: { width: 48, height: 48, borderRadius: 8, backgroundColor: "#F1F5F9" },
-  orderItemName: { fontSize: 13, fontWeight: "700", color: THEME.colors.textPrimary },
-  orderItemMeta: { fontSize: 11, color: THEME.colors.textSecondary, marginTop: 2 },
-  reviewMiniBtn: { flexDirection: "row", alignItems: "center", gap: 3, backgroundColor: "#FAF5FF", paddingHorizontal: 8, paddingVertical: 5, borderRadius: 8, borderWidth: 1, borderColor: "#E9D5FF" },
-  reviewMiniBtnText: { fontSize: 11, color: THEME.colors.primary, fontWeight: "800" },
+  orderHeader: { 
+    flexDirection: "row", 
+    alignItems: "center", 
+    padding: 16, 
+    backgroundColor: "#FFF",
+    gap: 8,
+  },
+  orderHeaderExpanded: {
+    backgroundColor: "#F8FAFC",
+    borderBottomWidth: 1,
+    borderColor: "#EEF2F6",
+  },
+  statusDot: { width: 8, height: 8, borderRadius: 4 },
+  orderId: { fontSize: 14, fontWeight: "900", color: THEME.colors.textPrimary, letterSpacing: 0.2 },
+  orderDate: { fontSize: 11, color: THEME.colors.textSecondary, marginTop: 3 },
+  statusBadge: { flexDirection: "row", alignItems: "center", paddingHorizontal: 10, paddingVertical: 6, borderRadius: 10, borderWidth: 1 },
+  statusText: { fontSize: 10, fontWeight: "800", letterSpacing: 0.2 },
 
-  orderFooter: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", padding: 14 },
-  orderTotal: { fontSize: 14, fontWeight: "900", color: THEME.colors.textPrimary },
-  orderActions: { flexDirection: "row", gap: 8 },
-  cancelBtn: { borderWidth: 1, borderColor: THEME.colors.error, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 6 },
+  // Collapsed preview
+  collapsedPreview: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingHorizontal: 16, paddingVertical: 14, borderTopWidth: 1, borderColor: "#F3F4F6" },
+  collapsedProductRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    flex: 1,
+    marginRight: 12,
+    gap: 12,
+  },
+  collapsedProductImg: {
+    width: 50,
+    height: 50,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
+    backgroundColor: "#F9FAFB",
+  },
+  collapsedProductInfo: {
+    flex: 1,
+    justifyContent: "center",
+  },
+  collapsedProductName: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: THEME.colors.textPrimary,
+  },
+  collapsedProductMeta: {
+    fontSize: 11,
+    color: THEME.colors.textSecondary,
+    marginTop: 2,
+    fontWeight: "500",
+  },
+  collapsedMoreText: {
+    fontSize: 10,
+    color: THEME.colors.primary,
+    fontWeight: "700",
+    marginTop: 2,
+  },
+  collapsedRightCol: {
+    alignItems: "flex-end",
+    justifyContent: "center",
+  },
+  collapsedTotalLabel: {
+    fontSize: 10,
+    color: THEME.colors.textMuted,
+    fontWeight: "700",
+    textTransform: "uppercase",
+  },
+  collapsedTotal: { fontSize: 16, fontWeight: "900", color: THEME.colors.textPrimary },
+
+  // Expanded Content Box
+  expandedContent: {
+    backgroundColor: "#FFF",
+  },
+
+  // Address Card
+  addrBox: {
+    padding: 16,
+    backgroundColor: "#F8FAFC",
+    marginHorizontal: 16,
+    marginTop: 16,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
+  },
+  addrHeader: { flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 6 },
+  addrTitle: { fontSize: 12, fontWeight: "800", color: THEME.colors.textPrimary },
+  addrText: { fontSize: 11, color: THEME.colors.textSecondary, lineHeight: 16 },
+
+  // Tracking Timeline Design
+  timelineContainer: {
+    paddingVertical: 18,
+    paddingHorizontal: 16,
+    marginHorizontal: 16,
+    marginTop: 14,
+    backgroundColor: "#FAFDFB",
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: "#E2F0E9",
+  },
+  timelineTrackRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 16,
+    marginBottom: 8,
+  },
+  trackSegmentWrapper: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  timelineDotCircle: {
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    borderWidth: 2,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#FFF",
+    zIndex: 2,
+  },
+  timelineDotInner: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: "#FFF",
+  },
+  timelineLineSegment: {
+    height: 3,
+    flex: 1,
+    marginHorizontal: -2,
+    zIndex: 1,
+  },
+  timelineLabelsRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+  },
+  timelineLabelText: {
+    fontSize: 10,
+    color: THEME.colors.textMuted,
+    fontWeight: "600",
+    width: 58,
+    textAlign: "center",
+  },
+  timelineLabelTextActive: {
+    color: THEME.colors.primary,
+    fontWeight: "900",
+  },
+  cancelledBanner: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    backgroundColor: "#FEF2F2",
+    padding: 14,
+    borderRadius: 14,
+    marginHorizontal: 16,
+    marginTop: 14,
+    borderWidth: 1,
+    borderColor: "#FEE2E2",
+  },
+  cancelledBannerText: {
+    fontSize: 12,
+    color: THEME.colors.error,
+    fontWeight: "800",
+  },
+
+  // Item List Header
+  itemsSectionTitle: {
+    fontSize: 13,
+    fontWeight: "900",
+    color: THEME.colors.textPrimary,
+    marginTop: 18,
+    marginHorizontal: 16,
+    marginBottom: 8,
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+  },
+
+  // Item Row Card design
+  itemRow: { 
+    flexDirection: "row", 
+    alignItems: "center", 
+    padding: 12, 
+    marginHorizontal: 16,
+    marginBottom: 8,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: "#F3F4F6",
+    backgroundColor: "#F9FAFB",
+    gap: 12,
+  },
+  itemImg: { width: 68, height: 68, borderRadius: 10, backgroundColor: "#FFF", borderWidth: 1, borderColor: "#E5E7EB" },
+  itemInfo: { flex: 1, justifyContent: "center" },
+  itemName: { fontSize: 13, fontWeight: "800", color: THEME.colors.textPrimary, lineHeight: 18 },
+  itemMeta: { fontSize: 11, color: THEME.colors.textSecondary, marginTop: 4, fontWeight: "500" },
+  itemSubtotal: { fontSize: 12, fontWeight: "800", color: THEME.colors.primary, marginTop: 4 },
+
+  // Review button per item
+  reviewBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#FAF5FF",
+    borderRadius: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    borderWidth: 1,
+    borderColor: "#E9D5FF",
+    gap: 4,
+  },
+  reviewBtnText: { fontSize: 11, color: THEME.colors.primary, fontWeight: "800" },
+
+  // Order footer
+  orderFooter: { 
+    flexDirection: "row", 
+    justifyContent: "space-between", 
+    alignItems: "center", 
+    padding: 16, 
+    marginTop: 12,
+    borderTopWidth: 1, 
+    borderColor: "#EEF2F6", 
+    backgroundColor: "#FAFAFA",
+  },
+  footerTotalLabel: { fontSize: 11, color: THEME.colors.textSecondary, fontWeight: "700" },
+  footerTotalVal: { fontSize: 18, fontWeight: "900", color: THEME.colors.textPrimary },
+  footerActions: { flexDirection: "row", gap: 8 },
+  cancelBtn: { 
+    flexDirection: "row", 
+    alignItems: "center", 
+    gap: 4, 
+    backgroundColor: "#FEF2F2",
+    borderRadius: 10, 
+    paddingHorizontal: 14, 
+    paddingVertical: 8,
+    borderWidth: 1,
+    borderColor: "#FCA5A5",
+  },
   cancelBtnText: { fontSize: 12, fontWeight: "800", color: THEME.colors.error },
-  buyAgainBtn: { flexDirection: "row", alignItems: "center", gap: 4, borderWidth: 1, borderColor: THEME.colors.primary, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 6 },
-  buyAgainText: { fontSize: 12, fontWeight: "800", color: THEME.colors.primary },
+  buyAgainBtn: { 
+    flexDirection: "row", 
+    alignItems: "center", 
+    gap: 5, 
+    backgroundColor: THEME.colors.primary, 
+    borderRadius: 10, 
+    paddingHorizontal: 14, 
+    paddingVertical: 8,
+    shadowColor: THEME.colors.primary,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  buyAgainText: { fontSize: 12, fontWeight: "800", color: "#FFF" },
 
-  // Modal
-  modalOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "flex-end" },
-  modalSheet: { backgroundColor: "#FFF", borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 20, paddingBottom: 32 },
-  modalHandle: { width: 36, height: 4, backgroundColor: "#D1D5DB", borderRadius: 2, alignSelf: "center", marginBottom: 16 },
-  modalHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
-  modalTitle: { fontSize: 16, fontWeight: "900", color: THEME.colors.textPrimary },
-  modalProduct: { fontSize: 13, color: THEME.colors.textSecondary, marginTop: 4, marginBottom: 16 },
-  ratingPrompt: { fontSize: 14, fontWeight: "700", color: THEME.colors.textPrimary, textAlign: "center", marginBottom: 10 },
-  starsRow: { flexDirection: "row", justifyContent: "center", gap: 8, marginBottom: 6 },
-  ratingLabel: { textAlign: "center", fontSize: 12, color: THEME.colors.textSecondary, fontWeight: "700", marginBottom: 14 },
-  commentInput: { backgroundColor: "#F8FAFC", borderWidth: 1.5, borderColor: "#E2E8F0", borderRadius: 14, padding: 12, fontSize: 13, color: THEME.colors.textPrimary, minHeight: 80, marginBottom: 16 },
-  submitReviewBtn: { backgroundColor: THEME.colors.primary, borderRadius: 14, paddingVertical: 14, flexDirection: "row", justifyContent: "center", alignItems: "center" },
-  submitReviewText: { color: "#FFF", fontSize: 14, fontWeight: "800" },
+  // Review Modal
+  modalOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.55)", justifyContent: "flex-end" },
+  modalSheet: { backgroundColor: "#FFF", borderTopLeftRadius: 28, borderTopRightRadius: 28, padding: 20, paddingBottom: 36 },
+  modalHandle: { width: 40, height: 4, backgroundColor: "#D1D5DB", borderRadius: 2, alignSelf: "center", marginBottom: 18 },
+  modalHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 16 },
+  modalTitle: { fontSize: 18, fontWeight: "900", color: THEME.colors.textPrimary },
+  modalClose: { padding: 4 },
+
+  reviewProductRow: { flexDirection: "row", alignItems: "center", gap: 12, backgroundColor: "#F8FAFC", borderRadius: 14, padding: 12, marginBottom: 18, borderWidth: 1, borderColor: "#E2E8F0" },
+  reviewProductImg: { width: 56, height: 56, borderRadius: 10, backgroundColor: "#E2E8F0" },
+  reviewProductName: { fontSize: 13, fontWeight: "800", color: THEME.colors.textPrimary, lineHeight: 18 },
+  reviewProductHint: { fontSize: 11, color: THEME.colors.textSecondary, marginTop: 2 },
+
+  ratingPrompt: { fontSize: 13, fontWeight: "800", color: THEME.colors.textPrimary, textAlign: "center", marginBottom: 12 },
+  starsRow: { flexDirection: "row", justifyContent: "center", gap: 6, marginBottom: 8 },
+  starBtn: { padding: 4 },
+  ratingLabel: { textAlign: "center", fontSize: 14, fontWeight: "800", color: "#FBBF24", marginBottom: 14 },
+
+  commentInput: {
+    backgroundColor: "#F8FAFC",
+    borderWidth: 1.5,
+    borderColor: "#E2E8F0",
+    borderRadius: 14,
+    padding: 12,
+    fontSize: 13,
+    color: THEME.colors.textPrimary,
+    minHeight: 90,
+    marginBottom: 16,
+  },
+  submitBtn: { backgroundColor: THEME.colors.primary, borderRadius: 14, paddingVertical: 14, flexDirection: "row", justifyContent: "center", alignItems: "center" },
+  submitBtnDisabled: { backgroundColor: "#CBD5E1" },
+  submitBtnText: { color: "#FFF", fontSize: 15, fontWeight: "800" },
 });

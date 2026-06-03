@@ -7,9 +7,7 @@ import {
   ScrollView,
   Image,
   ActivityIndicator,
-  Alert,
   Animated,
-  Dimensions,
   TextInput,
 } from "react-native";
 import { Stack, useRouter } from "expo-router";
@@ -20,8 +18,7 @@ import { THEME } from "../constants/theme";
 import { apiClient } from "../utils/api";
 import { API_ENDPOINTS } from "../constants/endpoints";
 import { getProductImage } from "../components/ProductCard";
-
-const { width } = Dimensions.get("window");
+import { useToast } from "../components/Toast";
 
 type CartItem = {
   cart_item_id: number;
@@ -39,6 +36,7 @@ type CartMeta = {
 
 export default function CartScreen() {
   const router = useRouter();
+  const { showToast } = useToast();
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [meta, setMeta] = useState<CartMeta>({ total_items: 0, grand_total: 0 });
   const [isLoading, setIsLoading] = useState(true);
@@ -61,8 +59,11 @@ export default function CartScreen() {
           grand_total: Number(data.meta?.grand_total || items.reduce((a: number, i: CartItem) => a + i.quantity * Number(i.price), 0)),
         });
       }
-    } catch (err) { console.error(err); }
-    finally { setIsLoading(false); }
+    } catch (err) {
+      showToast({ message: "Failed to load cart", type: "error" });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const updateQuantity = async (itemId: number, newQty: number, currentQty: number) => {
@@ -76,41 +77,40 @@ export default function CartScreen() {
     setMeta(p => ({ total_items: p.total_items + diff, grand_total: p.grand_total + diff * price }));
     try {
       const res = await apiClient.put(`${API_ENDPOINTS.CART}/${itemId}`, { quantity: newQty });
-      if (!res.ok) { setCartItems(orig); fetchCartData(); }
+      if (!res.ok) { setCartItems(orig); fetchCartData(); showToast({ message: "Failed to update quantity", type: "error" }); }
     } catch { setCartItems(orig); fetchCartData(); }
   };
 
-  const handleRemoveItem = (itemId: number) => {
-    Alert.alert("Remove Item", "Remove this item from your cart?", [
-      { text: "Cancel", style: "cancel" },
-      { text: "Remove", style: "destructive", onPress: async () => {
-        const orig = [...cartItems];
-        const t = cartItems.find(i => i.cart_item_id === itemId);
-        setCartItems(cartItems.filter(i => i.cart_item_id !== itemId));
-        setMeta(p => ({ total_items: Math.max(0, p.total_items - (t?.quantity || 0)), grand_total: Math.max(0, p.grand_total - (t?.quantity || 0) * Number(t?.price || 0)) }));
-        try {
-          const res = await apiClient.delete(`${API_ENDPOINTS.CART}/${itemId}`);
-          if (!res.ok) { setCartItems(orig); fetchCartData(); }
-        } catch { setCartItems(orig); fetchCartData(); }
-      }},
-    ]);
+  const handleRemoveItem = async (itemId: number) => {
+    const orig = [...cartItems];
+    const t = cartItems.find(i => i.cart_item_id === itemId);
+    setCartItems(cartItems.filter(i => i.cart_item_id !== itemId));
+    setMeta(p => ({
+      total_items: Math.max(0, p.total_items - (t?.quantity || 0)),
+      grand_total: Math.max(0, p.grand_total - (t?.quantity || 0) * Number(t?.price || 0)),
+    }));
+    try {
+      const res = await apiClient.delete(`${API_ENDPOINTS.CART}/${itemId}`);
+      if (res.ok) {
+        showToast({ message: "Item removed from cart", type: "success" });
+      } else {
+        setCartItems(orig); fetchCartData();
+        showToast({ message: "Failed to remove item", type: "error" });
+      }
+    } catch { setCartItems(orig); fetchCartData(); }
   };
 
-  const handleClearCart = () => {
-    Alert.alert("Clear Cart", "Remove all items?", [
-      { text: "Cancel", style: "cancel" },
-      { text: "Clear All", style: "destructive", onPress: async () => {
-        setIsClearing(true);
-        try {
-          const res = await apiClient.delete(API_ENDPOINTS.CART_CLEAR);
-          if (res.ok) {
-            Animated.timing(wipeAnim, { toValue: 0, duration: 400, useNativeDriver: true }).start(() => {
-              setCartItems([]); setMeta({ total_items: 0, grand_total: 0 }); wipeAnim.setValue(1); setIsClearing(false);
-            });
-          } else { setIsClearing(false); }
-        } catch { setIsClearing(false); }
-      }},
-    ]);
+  const handleClearCart = async () => {
+    setIsClearing(true);
+    try {
+      const res = await apiClient.delete(API_ENDPOINTS.CART_CLEAR);
+      if (res.ok) {
+        Animated.timing(wipeAnim, { toValue: 0, duration: 400, useNativeDriver: true }).start(() => {
+          setCartItems([]); setMeta({ total_items: 0, grand_total: 0 }); wipeAnim.setValue(1); setIsClearing(false);
+          showToast({ message: "Cart cleared successfully", type: "success" });
+        });
+      } else { setIsClearing(false); showToast({ message: "Failed to clear cart", type: "error" }); }
+    } catch { setIsClearing(false); showToast({ message: "Network error", type: "error" }); }
   };
 
   const discount = meta.grand_total * 0.05;
@@ -169,7 +169,7 @@ export default function CartScreen() {
           <Animated.View style={{ flex: 1, opacity: wipeAnim }}>
             <ScrollView contentContainerStyle={s.listContent} showsVerticalScrollIndicator={false}>
 
-              {/* Delivery Guarantee Banner */}
+              {/* Delivery Banner */}
               <View style={s.deliveryBanner}>
                 <Truck size={16} color="#16A34A" />
                 <Text style={s.deliveryBannerText}>Free delivery on orders above $25</Text>
@@ -184,9 +184,13 @@ export default function CartScreen() {
 
                 return (
                   <View key={item.cart_item_id} style={s.itemCard}>
-                    {/* Product Row */}
                     <View style={s.itemRow}>
-                      <Image source={{ uri: img }} style={s.productImg} resizeMode="cover" />
+                      <Image
+                        source={{ uri: img }}
+                        style={s.productImg}
+                        resizeMode="cover"
+                        defaultSource={require("../../assets/images/icon.png")}
+                      />
                       <View style={s.itemInfo}>
                         <Text style={s.itemName} numberOfLines={2}>{item.name}</Text>
                         <View style={s.priceRow}>
@@ -222,7 +226,7 @@ export default function CartScreen() {
                 );
               })}
 
-              {/* Coupon Code Section */}
+              {/* Coupon Code */}
               <View style={s.couponCard}>
                 <Tag size={16} color={THEME.colors.primary} />
                 <TextInput
@@ -232,7 +236,10 @@ export default function CartScreen() {
                   value={promoCode}
                   onChangeText={setPromoCode}
                 />
-                <TouchableOpacity style={s.couponApplyBtn}>
+                <TouchableOpacity
+                  style={s.couponApplyBtn}
+                  onPress={() => showToast({ message: promoCode ? "Coupon applied!" : "Enter a coupon code", type: promoCode ? "success" : "warning" })}
+                >
                   <Text style={s.couponApplyText}>Apply</Text>
                 </TouchableOpacity>
               </View>
