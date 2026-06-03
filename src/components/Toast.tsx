@@ -20,11 +20,11 @@ const ToastContext = createContext<ToastContextType>({ showToast: () => {} });
 
 export const useToast = () => useContext(ToastContext);
 
-const TOAST_COLORS: Record<ToastType, { accent: string; iconBg: string }> = {
-  success: { accent: "#10B981", iconBg: "rgba(16, 185, 129, 0.15)" },
-  error: { accent: "#EF4444", iconBg: "rgba(239, 68, 68, 0.15)" },
-  warning: { accent: "#F59E0B", iconBg: "rgba(245, 158, 11, 0.15)" },
-  info: { accent: "#3B82F6", iconBg: "rgba(59, 130, 246, 0.15)" },
+const TOAST_COLORS: Record<ToastType, { accent: string; iconBg: string; bg: string }> = {
+  success: { accent: "#10B981", iconBg: "#E6F4EA", bg: "#F3FBF7" },
+  error: { accent: "#EF4444", iconBg: "#FCE8E6", bg: "#FEF3F2" },
+  warning: { accent: "#F59E0B", iconBg: "#FEF3D6", bg: "#FFFDF0" },
+  info: { accent: "#3B82F6", iconBg: "#E8F0FE", bg: "#F4F8FF" },
 };
 
 const TOAST_ICONS: Record<ToastType, any> = {
@@ -85,14 +85,15 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
             style={[
               styles.toastContainer,
               {
-                borderLeftColor: colors.accent,
+                backgroundColor: colors.bg,
+                borderColor: colors.iconBg,
                 transform: [{ translateY }, { scale }],
                 opacity,
               },
             ]}
           >
             <View style={[styles.iconCircle, { backgroundColor: colors.iconBg }]}>
-              <Icon size={16} color={colors.accent} strokeWidth={3} />
+              <Icon size={14} color={colors.accent} strokeWidth={3} />
             </View>
             <View style={styles.textContainer}>
               <Text style={styles.toastMessage} numberOfLines={2}>
@@ -100,7 +101,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
               </Text>
             </View>
             <View style={styles.closeBtn}>
-              <X size={14} color="#94A3B8" strokeWidth={2.5} />
+              <X size={12} color="#94A3B8" strokeWidth={2.5} />
             </View>
           </Animated.View>
         </TouchableOpacity>
@@ -113,42 +114,43 @@ const styles = StyleSheet.create({
   touchableWrapper: {
     position: "absolute",
     top: 56,
-    left: 16,
-    right: 16,
+    left: 0,
+    right: 0,
+    alignItems: "center",
     zIndex: 9999,
   },
   toastContainer: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#1E293B", // Dark slate background
-    borderLeftWidth: 4,
-    paddingVertical: 14,
+    borderWidth: 1.5,
+    paddingVertical: 10,
     paddingHorizontal: 16,
-    borderRadius: 16,
-    gap: 12,
-    elevation: 24,
+    borderRadius: 24,
+    gap: 10,
+    maxWidth: width - 64,
+    elevation: 12,
     shadowColor: "#0F172A",
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.25,
-    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.12,
+    shadowRadius: 12,
   },
   iconCircle: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: 26,
+    height: 26,
+    borderRadius: 13,
     justifyContent: "center",
     alignItems: "center",
   },
   textContainer: {
-    flex: 1,
+    flexShrink: 1,
   },
   toastMessage: {
-    color: "#F8FAFC",
-    fontSize: 13,
+    color: "#1E293B",
+    fontSize: 12.5,
     fontWeight: "700",
-    lineHeight: 18,
+    lineHeight: 17,
   },
   closeBtn: {
-    padding: 4,
+    padding: 2,
   },
 });
