@@ -86,7 +86,7 @@ export default function HomeScreen() {
   );
 
   return (
-    <SafeAreaView style={styles.container} edges={["top", "bottom"]}>
+    <SafeAreaView style={styles.container} edges={["bottom"]}>
       <Stack.Screen options={{ headerShown: false }} />
       <StatusBar style="dark" />
 
@@ -120,6 +120,7 @@ export default function HomeScreen() {
             <SlidersHorizontal size={20} color={THEME.colors.primary} />
           </TouchableOpacity>
         </View>
+
 
         {/* Automatic Sliding Promotions Carousel */}
         <AutoPromoSlider />

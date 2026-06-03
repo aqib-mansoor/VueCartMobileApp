@@ -1,6 +1,7 @@
 import React from "react";
 import { StyleSheet, View, Text, TouchableOpacity } from "react-native";
-import { ShoppingCart, LogOut } from "lucide-react-native";
+import { ShoppingCart, LogOut, Crown } from "lucide-react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { THEME } from "../constants/theme";
 
 type WelcomeHeaderProps = {
@@ -16,16 +17,32 @@ export const WelcomeHeader: React.FC<WelcomeHeaderProps> = ({
   onLogout,
   onCartPress,
 }) => {
+  const insets = useSafeAreaInsets();
+
   return (
-    <View style={styles.header}>
+    <View style={[styles.header, { paddingTop: insets.top + THEME.spacing.sm }]}>
       <View style={styles.welcomeSection}>
-        <View style={styles.avatar}>
-          <Text style={styles.avatarText}>
-            {userName ? userName[0].toUpperCase() : "G"}
-          </Text>
+        <View style={styles.avatarWrapper}>
+          <View style={styles.avatar}>
+            <Text style={styles.avatarText}>
+              {userName ? userName[0].toUpperCase() : "G"}
+            </Text>
+          </View>
+          {userName && (
+            <View style={styles.onlineDot} />
+          )}
         </View>
+
         <View style={styles.greetingTextContainer}>
-          <Text style={styles.greetingSub}>Good Day!</Text>
+          <View style={styles.loyaltyRow}>
+            <Text style={styles.greetingSub}>Good Day!</Text>
+            {userName && (
+              <View style={styles.loyaltyBadge}>
+                <Crown size={8} color="#D97706" fill="#D97706" />
+                <Text style={styles.loyaltyBadgeText}>PLUS</Text>
+              </View>
+            )}
+          </View>
           <Text style={styles.greetingTitle}>
             {userName ? `Hello, ${userName}` : "Welcome to CartVue"}
           </Text>
@@ -35,7 +52,7 @@ export const WelcomeHeader: React.FC<WelcomeHeaderProps> = ({
       <View style={styles.headerActions}>
         {userName && (
           <TouchableOpacity style={styles.logoutIconButton} onPress={onLogout} activeOpacity={0.7}>
-            <LogOut size={20} color={THEME.colors.textSecondary} />
+            <LogOut size={18} color={THEME.colors.textSecondary} />
           </TouchableOpacity>
         )}
         <TouchableOpacity style={styles.cartIconButton} onPress={onCartPress} activeOpacity={0.7}>
@@ -58,14 +75,13 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingBottom: THEME.spacing.md,
     paddingHorizontal: THEME.spacing.lg,
-    paddingTop: THEME.spacing.md,
     backgroundColor: "#FFFFFF",
     borderBottomWidth: 1,
     borderColor: "#E5E7EB",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.04,
-    shadowRadius: 10,
+    shadowRadius: 8,
     elevation: 2,
   },
   welcomeSection: {
@@ -73,32 +89,71 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: THEME.spacing.sm,
   },
+  avatarWrapper: {
+    position: "relative",
+  },
   avatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 42,
+    height: 42,
+    borderRadius: 21,
     backgroundColor: THEME.colors.primary,
     justifyContent: "center",
     alignItems: "center",
+    borderWidth: 1.5,
+    borderColor: "#E9D5FF",
   },
   avatarText: {
     color: "#FFFFFF",
-    fontWeight: "700",
-    fontSize: 18,
+    fontWeight: "800",
+    fontSize: 16,
+  },
+  onlineDot: {
+    position: "absolute",
+    bottom: 0,
+    right: 0,
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: THEME.colors.success,
+    borderWidth: 2,
+    borderColor: "#FFFFFF",
   },
   greetingTextContainer: {
     justifyContent: "center",
   },
+  loyaltyRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
   greetingSub: {
-    fontSize: 11,
-    fontWeight: "500",
+    fontSize: 10,
+    fontWeight: "700",
     color: THEME.colors.textSecondary,
     textTransform: "uppercase",
+    letterSpacing: 0.5,
+  },
+  loyaltyBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#FEF3C7",
+    paddingHorizontal: 5,
+    paddingVertical: 1,
+    borderRadius: 4,
+    gap: 2,
+    borderWidth: 0.5,
+    borderColor: "#FCD34D",
+  },
+  loyaltyBadgeText: {
+    color: "#B45309",
+    fontSize: 8,
+    fontWeight: "800",
   },
   greetingTitle: {
     fontSize: 16,
     fontWeight: "800",
     color: THEME.colors.textPrimary,
+    marginTop: 1,
   },
   headerActions: {
     flexDirection: "row",

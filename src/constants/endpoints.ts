@@ -10,4 +10,5 @@ export const API_ENDPOINTS = {
   PRODUCTS: "/products",
   SEARCH_PRODUCTS: "/products/search",
   CART: "/cart",
+  CART_CLEAR: "/cart/clear",
 };

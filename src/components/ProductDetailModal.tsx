@@ -1,7 +1,9 @@
 import React from "react";
 import { StyleSheet, View, Text, TouchableOpacity, ScrollView, Image } from "react-native";
 import { X, ShoppingCart, Sparkles } from "lucide-react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { THEME } from "../constants/theme";
+import { getProductImage } from "./ProductCard";
 
 type Product = {
   id: number;
@@ -24,11 +26,20 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
   onClose,
   onAddToCart,
 }) => {
+  const insets = useSafeAreaInsets();
   if (!product) return null;
+
+  // Mirror the exact dynamic values from ProductCard
+  const rating = (4.0 + ((product.id * 7) % 10) * 0.1).toFixed(1);
+  const soldCount = 50 + ((product.id * 23) % 900);
+  const discountPercent = 15 + ((product.id * 5) % 25);
+  const salePrice = Number(product.price);
+  const originalPrice = salePrice / (1 - discountPercent / 100);
+  const hasFreeDelivery = product.id % 2 === 0;
 
   return (
     <View style={styles.modalOverlay}>
-      <View style={styles.modalContent}>
+      <View style={[styles.modalContent, { paddingBottom: Math.max(insets.bottom, 16) }]}>
         {/* Modal Header */}
         <View style={styles.modalHeader}>
           <Text style={styles.modalCategory}>{product.category?.name || "Premium Catalog"}</Text>
@@ -40,43 +51,79 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
         {/* Modal Body */}
         <ScrollView contentContainerStyle={styles.modalScrollBody} showsVerticalScrollIndicator={false}>
           <Image
-            source={{ uri: `https://picsum.photos/id/${(product.id * 7) % 100}/400/400` }}
+            source={{ uri: getProductImage(product.name, product.category?.name) }}
             style={styles.modalImage}
             resizeMode="cover"
           />
 
-          <View style={styles.modalMainInfo}>
-            <Text style={styles.modalTitle}>{product.name}</Text>
-            <Text style={styles.modalPrice}>${Number(product.price).toFixed(2)}</Text>
+          {/* Pricing & Discount Badges Row (Temu/Daraz style) */}
+          <View style={styles.modalPricingContainer}>
+            <View style={styles.pricingLeft}>
+              <Text style={styles.modalPrice}>${salePrice.toFixed(2)}</Text>
+              <Text style={styles.modalOriginalPrice}>${originalPrice.toFixed(2)}</Text>
+              <View style={styles.detailDiscountBadge}>
+                <Text style={styles.detailDiscountText}>{discountPercent}% OFF</Text>
+              </View>
+            </View>
+
+            {/* Stock Level Badge */}
+            <View style={styles.modalStockWrapper}>
+              {product.stock > 0 ? (
+                <View style={[styles.modalBadge, { backgroundColor: "#E6F4EA" }]}>
+                  <Text style={{ color: "#137333", fontSize: 10, fontWeight: "800" }}>In Stock</Text>
+                </View>
+              ) : (
+                <View style={[styles.modalBadge, { backgroundColor: "#FEF2F2" }]}>
+                  <Text style={{ color: "#EF4444", fontSize: 10, fontWeight: "800" }}>Sold Out</Text>
+                </View>
+              )}
+            </View>
           </View>
 
-          {/* Stock Info Banner */}
-          <View style={styles.modalStockRow}>
-            {product.stock > 10 ? (
-              <View style={[styles.modalBadge, { backgroundColor: "#E6F4EA" }]}>
-                <Text style={{ color: "#137333", fontSize: 12, fontWeight: "700" }}>In Stock (Unlimited)</Text>
+          {/* Ratings & Sold Volume */}
+          <View style={styles.modalRatingRow}>
+            <View style={styles.starsGroup}>
+              <Text style={styles.starIcon}>★</Text>
+              <Text style={styles.ratingNumber}>{rating}</Text>
+              <Text style={styles.reviewsCount}>({(product.id * 12) % 180 + 15} reviews)</Text>
+            </View>
+            <View style={styles.dividerDot} />
+            <Text style={styles.detailSoldCount}>{soldCount}+ items sold</Text>
+          </View>
+
+          {/* Product Title */}
+          <Text style={styles.modalTitle}>{product.name}</Text>
+
+          {/* Delivery & Guarantees section (Flipkart style) */}
+          <View style={styles.deliveryCard}>
+            <View style={styles.deliveryLine}>
+              <Text style={styles.deliveryIcon}>🚚</Text>
+              <View style={styles.deliveryDetailsCol}>
+                <Text style={styles.deliveryTitle}>
+                  {hasFreeDelivery ? "Free Delivery Guaranteed" : "Standard Delivery - $2.99"}
+                </Text>
+                <Text style={styles.deliverySubtitle}>Est. Delivery in 2 - 4 business days</Text>
               </View>
-            ) : product.stock > 0 ? (
-              <View style={[styles.modalBadge, { backgroundColor: "#FEF3C7" }]}>
-                <Text style={{ color: "#D97706", fontSize: 12, fontWeight: "700" }}>Limited Stock: Only {product.stock} left!</Text>
+            </View>
+            <View style={[styles.deliveryLine, { marginTop: 10 }]}>
+              <Text style={styles.deliveryIcon}>🛡️</Text>
+              <View style={styles.deliveryDetailsCol}>
+                <Text style={styles.deliveryTitle}>15-Day Easy Returns & Refunds</Text>
+                <Text style={styles.deliverySubtitle}>100% Genuine and authentic product quality</Text>
               </View>
-            ) : (
-              <View style={[styles.modalBadge, { backgroundColor: "#FEF2F2" }]}>
-                <Text style={{ color: "#EF4444", fontSize: 12, fontWeight: "700" }}>Out of Stock</Text>
-              </View>
-            )}
+            </View>
           </View>
 
           {/* Description Section */}
           <View style={styles.modalSection}>
-            <Text style={styles.modalSectionTitle}>Product Description</Text>
-            <Text style={styles.modalDescription}>{product.description || "No description provided."}</Text>
+            <Text style={styles.modalSectionTitle}>Product Specifications</Text>
+            <Text style={styles.modalDescription}>{product.description || "High-quality item sourced from trusted distributors."}</Text>
           </View>
 
           {/* Promotional Loyalty Text (Tata Neu styling) */}
           <View style={styles.modalBenefitsCard}>
             <Sparkles size={16} color={THEME.colors.secondary} />
-            <Text style={styles.modalBenefitsText}>Buy now and get 5% cashback coins directly to your wallet!</Text>
+            <Text style={styles.modalBenefitsText}>Earn up to 5% NeuCoins on this purchase to spend on other orders!</Text>
           </View>
         </ScrollView>
 
@@ -147,42 +194,129 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     backgroundColor: "#F3F4F6",
   },
-  modalMainInfo: {
-    gap: 4,
+  modalPricingContainer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     marginTop: THEME.spacing.sm,
   },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: "800",
-    color: THEME.colors.textPrimary,
+  pricingLeft: {
+    flexDirection: "row",
+    alignItems: "baseline",
+    gap: 8,
   },
   modalPrice: {
-    fontSize: 22,
+    fontSize: 24,
     fontWeight: "900",
-    color: THEME.colors.primary,
+    color: "#EF4444", // High-conversion promotional red
   },
-  modalStockRow: {
+  modalOriginalPrice: {
+    fontSize: 13,
+    color: THEME.colors.textMuted,
+    textDecorationLine: "line-through",
+  },
+  detailDiscountBadge: {
+    backgroundColor: "#FEE2E2",
+    paddingHorizontal: 6,
+    paddingVertical: 3,
+    borderRadius: 4,
+  },
+  detailDiscountText: {
+    color: "#EF4444",
+    fontSize: 10,
+    fontWeight: "800",
+  },
+  modalStockWrapper: {
     flexDirection: "row",
-    marginVertical: 4,
   },
   modalBadge: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 6,
+  },
+  modalRatingRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 4,
+    gap: 8,
+  },
+  starsGroup: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 3,
+  },
+  starIcon: {
+    color: "#F59E0B",
+    fontSize: 14,
+  },
+  ratingNumber: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: THEME.colors.textPrimary,
+  },
+  reviewsCount: {
+    fontSize: 11,
+    color: THEME.colors.textSecondary,
+  },
+  dividerDot: {
+    width: 3,
+    height: 3,
+    borderRadius: 99,
+    backgroundColor: THEME.colors.textMuted,
+  },
+  detailSoldCount: {
+    fontSize: 11,
+    fontWeight: "600",
+    color: THEME.colors.textPrimary,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: "800",
+    color: THEME.colors.textPrimary,
+    marginTop: 6,
+  },
+  deliveryCard: {
+    backgroundColor: "#F8FAFC",
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+    borderRadius: 12,
+    padding: 12,
+    marginTop: THEME.spacing.sm,
+  },
+  deliveryLine: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 10,
+  },
+  deliveryIcon: {
+    fontSize: 16,
+  },
+  deliveryDetailsCol: {
+    flex: 1,
+  },
+  deliveryTitle: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: THEME.colors.textPrimary,
+  },
+  deliverySubtitle: {
+    fontSize: 10,
+    color: THEME.colors.textSecondary,
+    marginTop: 1,
   },
   modalSection: {
     gap: 6,
-    marginTop: THEME.spacing.xs,
+    marginTop: THEME.spacing.sm,
   },
   modalSectionTitle: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: "700",
     color: THEME.colors.textPrimary,
   },
   modalDescription: {
-    fontSize: 13,
+    fontSize: 12,
     color: THEME.colors.textSecondary,
-    lineHeight: 20,
+    lineHeight: 18,
   },
   modalBenefitsCard: {
     flexDirection: "row",
@@ -203,7 +337,10 @@ const styles = StyleSheet.create({
   },
   modalFooter: {
     paddingHorizontal: THEME.spacing.lg,
-    paddingTop: THEME.spacing.sm,
+    paddingTop: THEME.spacing.md,
+    borderTopWidth: 1,
+    borderColor: "#F1F5F9",
+    backgroundColor: "#FFFFFF",
   },
   modalAddButton: {
     backgroundColor: THEME.colors.primary,
