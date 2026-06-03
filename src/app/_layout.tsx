@@ -1,6 +1,7 @@
 import React, { useEffect } from "react";
 import { Stack, useRouter, useSegments } from "expo-router";
 import { AuthProvider, useAuth } from "../context/AuthContext";
+import { ToastProvider } from "../components/Toast";
 
 function RootLayoutNavigation() {
   const { authToken, isLoading } = useAuth();
@@ -32,7 +33,9 @@ function RootLayoutNavigation() {
 export default function RootLayout() {
   return (
     <AuthProvider>
-      <RootLayoutNavigation />
+      <ToastProvider>
+        <RootLayoutNavigation />
+      </ToastProvider>
     </AuthProvider>
   );
 }

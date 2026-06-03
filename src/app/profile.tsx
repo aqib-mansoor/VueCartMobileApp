@@ -13,7 +13,21 @@ import {
 import { Stack, useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { ChevronLeft, User, Mail, Calendar, Save, Key, ClipboardList, MapPin, Heart } from "lucide-react-native";
+import {
+  ChevronLeft,
+  ChevronRight,
+  User,
+  Mail,
+  Calendar,
+  Save,
+  Key,
+  ClipboardList,
+  MapPin,
+  Heart,
+  ShoppingCart,
+  Settings,
+  LogOut,
+} from "lucide-react-native";
 import { THEME } from "../constants/theme";
 import { apiClient } from "../utils/api";
 import { API_ENDPOINTS } from "../constants/endpoints";
@@ -31,10 +45,11 @@ type Address = {
 
 export default function ProfileScreen() {
   const router = useRouter();
-  const { authToken, login } = useAuth();
+  const { authToken, login, logout } = useAuth();
 
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [showEditForm, setShowEditForm] = useState(false);
 
   // Form inputs
   const [name, setName] = useState("");
@@ -42,13 +57,14 @@ export default function ProfileScreen() {
   const [age, setAge] = useState("");
   const [password, setPassword] = useState("");
 
-  // Addresses & Favourites
+  // Addresses
   const [addresses, setAddresses] = useState<Address[]>([]);
 
-  // Mock favourites matching backend products
+  // Mock favourites
   const mockFavourites = [
     { id: 1, name: "Wireless Headphones", price: 99.99, category: "Electronics" },
     { id: 2, name: "Protein Powder", price: 49.99, category: "Fitness" },
+    { id: 3, name: "Nike Air Max", price: 129.99, category: "Fashion" },
   ];
 
   useEffect(() => {
@@ -58,7 +74,6 @@ export default function ProfileScreen() {
   const fetchProfileData = async () => {
     setIsLoading(true);
     try {
-      // 1. Fetch Profile
       const res = await apiClient.get(API_ENDPOINTS.PROFILE);
       if (res.ok) {
         const data = await res.json();
@@ -68,7 +83,6 @@ export default function ProfileScreen() {
         setAge(profile.age ? String(profile.age) : "");
       }
 
-      // 2. Fetch Saved Addresses
       const addressRes = await apiClient.get(API_ENDPOINTS.ADDRESSES);
       if (addressRes.ok) {
         const addressData = await addressRes.json();
@@ -89,23 +103,15 @@ export default function ProfileScreen() {
 
     setIsSaving(true);
     try {
-      const payload: any = {
-        name,
-        email,
-      };
-      if (age.trim()) {
-        payload.age = Number(age);
-      }
-      if (password.trim()) {
-        payload.password = password;
-      }
+      const payload: any = { name, email };
+      if (age.trim()) payload.age = Number(age);
+      if (password.trim()) payload.password = password;
 
       const res = await apiClient.put(API_ENDPOINTS.PROFILE, payload);
       if (res.ok) {
         const data = await res.json();
         const updatedUser = data.user || data.data || { name, email, age: Number(age) };
-        
-        // Sync context and AsyncStorage
+
         if (authToken) {
           await login(authToken, {
             name: updatedUser.name || name,
@@ -113,8 +119,9 @@ export default function ProfileScreen() {
             age: updatedUser.age || Number(age) || undefined,
           });
         }
-        
+
         setPassword("");
+        setShowEditForm(false);
         Alert.alert("Success", "Profile updated successfully!");
       } else {
         const data = await res.json().catch(() => ({}));
@@ -127,18 +134,56 @@ export default function ProfileScreen() {
     }
   };
 
+  const handleLogout = () => {
+    Alert.alert("Logout", "Are you sure you want to sign out?", [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Sign Out",
+        style: "destructive",
+        onPress: async () => {
+          await logout();
+          router.replace("/login" as any);
+        },
+      },
+    ]);
+  };
+
+  // Navigation menu items
+  const menuItems = [
+    {
+      icon: <ClipboardList size={20} color={THEME.colors.primary} />,
+      label: "Order History",
+      subtitle: "View your past orders",
+      onPress: () => router.push("/orders" as any),
+    },
+    {
+      icon: <ShoppingCart size={20} color={THEME.colors.secondary} />,
+      label: "My Cart",
+      subtitle: "View items in your cart",
+      onPress: () => router.push("/cart" as any),
+    },
+    {
+      icon: <Settings size={20} color="#64748B" />,
+      label: "Edit Profile",
+      subtitle: "Update name, email, password",
+      onPress: () => setShowEditForm(!showEditForm),
+    },
+  ];
+
   return (
     <SafeAreaView style={styles.container} edges={["top", "bottom"]}>
       <Stack.Screen options={{ headerShown: false }} />
-      <StatusBar style="dark" />
+      <StatusBar style="light" />
 
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton} activeOpacity={0.7}>
-          <ChevronLeft size={24} color={THEME.colors.textPrimary} />
+          <ChevronLeft size={24} color="#FFFFFF" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>My Profile</Text>
-        <View style={{ width: 32 }} />
+        <TouchableOpacity onPress={handleLogout} style={styles.logoutBtn} activeOpacity={0.7}>
+          <LogOut size={20} color="#FFFFFF" />
+        </TouchableOpacity>
       </View>
 
       {isLoading ? (
@@ -147,132 +192,150 @@ export default function ProfileScreen() {
           <Text style={styles.loadingText}>Fetching profile details...</Text>
         </View>
       ) : (
-        <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-          {/* Avatar Area */}
-          <View style={styles.avatarCard}>
-            <View style={styles.largeAvatar}>
-              <Text style={styles.largeAvatarText}>
-                {name ? name[0].toUpperCase() : "U"}
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+        >
+          {/* Hero Profile Banner */}
+          <View style={styles.heroBanner}>
+            <View style={styles.heroGradient}>
+              <View style={styles.largeAvatar}>
+                <Text style={styles.largeAvatarText}>
+                  {name ? name[0].toUpperCase() : "U"}
+                </Text>
+              </View>
+              <Text style={styles.profileName}>{name || "User Name"}</Text>
+              <Text style={styles.profileEmail}>{email || "user@example.com"}</Text>
+              {age ? (
+                <View style={styles.ageBadge}>
+                  <Text style={styles.ageBadgeText}>Age: {age}</Text>
+                </View>
+              ) : null}
+            </View>
+          </View>
+
+          {/* Quick Navigation Menu */}
+          <View style={styles.menuCard}>
+            {menuItems.map((item, idx) => (
+              <TouchableOpacity
+                key={idx}
+                style={[
+                  styles.menuRow,
+                  idx < menuItems.length - 1 && styles.menuRowBorder,
+                ]}
+                onPress={item.onPress}
+                activeOpacity={0.7}
+              >
+                <View style={styles.menuIconContainer}>{item.icon}</View>
+                <View style={styles.menuTextContainer}>
+                  <Text style={styles.menuLabel}>{item.label}</Text>
+                  <Text style={styles.menuSubtitle}>{item.subtitle}</Text>
+                </View>
+                <ChevronRight size={18} color={THEME.colors.textMuted} />
+              </TouchableOpacity>
+            ))}
+          </View>
+
+          {/* Collapsible Edit Profile Form */}
+          {showEditForm && (
+            <View style={styles.formCard}>
+              <Text style={styles.formSectionTitle}>Account Details</Text>
+
+              <View style={styles.inputContainer}>
+                <View style={styles.inputIcon}>
+                  <User size={18} color={THEME.colors.textSecondary} />
+                </View>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Full Name"
+                  placeholderTextColor={THEME.colors.textMuted}
+                  value={name}
+                  onChangeText={setName}
+                />
+              </View>
+
+              <View style={styles.inputContainer}>
+                <View style={styles.inputIcon}>
+                  <Mail size={18} color={THEME.colors.textSecondary} />
+                </View>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Email Address"
+                  placeholderTextColor={THEME.colors.textMuted}
+                  keyboardType="email-address"
+                  value={email}
+                  onChangeText={setEmail}
+                />
+              </View>
+
+              <View style={styles.inputContainer}>
+                <View style={styles.inputIcon}>
+                  <Calendar size={18} color={THEME.colors.textSecondary} />
+                </View>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Age"
+                  placeholderTextColor={THEME.colors.textMuted}
+                  keyboardType="numeric"
+                  value={age}
+                  onChangeText={setAge}
+                />
+              </View>
+
+              <Text style={[styles.formSectionTitle, { marginTop: 12 }]}>
+                Change Password (Optional)
               </Text>
-            </View>
-            <Text style={styles.profileName}>{name || "User Name"}</Text>
-            <Text style={styles.profileEmail}>{email || "user@example.com"}</Text>
-            
-            {/* Quick Navigation Panel */}
-            <View style={styles.quickNavRow}>
+
+              <View style={styles.inputContainer}>
+                <View style={styles.inputIcon}>
+                  <Key size={18} color={THEME.colors.textSecondary} />
+                </View>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Enter new password"
+                  placeholderTextColor={THEME.colors.textMuted}
+                  secureTextEntry
+                  value={password}
+                  onChangeText={setPassword}
+                />
+              </View>
+
               <TouchableOpacity
-                style={styles.quickNavBtn}
-                onPress={() => router.push("/orders" as any)}
-                activeOpacity={0.7}
+                style={styles.saveButton}
+                onPress={handleSaveProfile}
+                disabled={isSaving}
+                activeOpacity={0.9}
               >
-                <ClipboardList size={20} color={THEME.colors.primary} />
-                <Text style={styles.quickNavLabel}>Orders</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.quickNavBtn}
-                onPress={() => router.push("/checkout" as any)}
-                activeOpacity={0.7}
-              >
-                <MapPin size={20} color={THEME.colors.primary} />
-                <Text style={styles.quickNavLabel}>Checkout</Text>
+                {isSaving ? (
+                  <ActivityIndicator size="small" color="#FFFFFF" />
+                ) : (
+                  <>
+                    <Save size={18} color="#FFFFFF" style={{ marginRight: 8 }} />
+                    <Text style={styles.saveButtonText}>Save Profile Changes</Text>
+                  </>
+                )}
               </TouchableOpacity>
             </View>
-          </View>
-
-          {/* Form */}
-          <View style={styles.formCard}>
-            <Text style={styles.formSectionTitle}>Account Details</Text>
-            
-            {/* Name Input */}
-            <View style={styles.inputContainer}>
-              <View style={styles.inputIcon}>
-                <User size={18} color={THEME.colors.textSecondary} />
-              </View>
-              <TextInput
-                style={styles.input}
-                placeholder="Full Name"
-                placeholderTextColor={THEME.colors.textMuted}
-                value={name}
-                onChangeText={setName}
-              />
-            </View>
-
-            {/* Email Input */}
-            <View style={styles.inputContainer}>
-              <View style={styles.inputIcon}>
-                <Mail size={18} color={THEME.colors.textSecondary} />
-              </View>
-              <TextInput
-                style={styles.input}
-                placeholder="Email Address"
-                placeholderTextColor={THEME.colors.textMuted}
-                keyboardType="email-address"
-                value={email}
-                onChangeText={setEmail}
-              />
-            </View>
-
-            {/* Age Input */}
-            <View style={styles.inputContainer}>
-              <View style={styles.inputIcon}>
-                <Calendar size={18} color={THEME.colors.textSecondary} />
-              </View>
-              <TextInput
-                style={styles.input}
-                placeholder="Age"
-                placeholderTextColor={THEME.colors.textMuted}
-                keyboardType="numeric"
-                value={age}
-                onChangeText={setAge}
-              />
-            </View>
-
-            <Text style={[styles.formSectionTitle, { marginTop: 12 }]}>Change Password (Optional)</Text>
-
-            {/* Password Input */}
-            <View style={styles.inputContainer}>
-              <View style={styles.inputIcon}>
-                <Key size={18} color={THEME.colors.textSecondary} />
-              </View>
-              <TextInput
-                style={styles.input}
-                placeholder="Enter new password"
-                placeholderTextColor={THEME.colors.textMuted}
-                secureTextEntry
-                value={password}
-                onChangeText={setPassword}
-              />
-            </View>
-
-            {/* Save Button */}
-            <TouchableOpacity
-              style={styles.saveButton}
-              onPress={handleSaveProfile}
-              disabled={isSaving}
-              activeOpacity={0.9}
-            >
-              {isSaving ? (
-                <ActivityIndicator size="small" color="#FFFFFF" />
-              ) : (
-                <>
-                  <Save size={18} color="#FFFFFF" style={{ marginRight: 8 }} />
-                  <Text style={styles.saveButtonText}>Save Profile Changes</Text>
-                </>
-              )}
-            </TouchableOpacity>
-          </View>
+          )}
 
           {/* Saved Addresses Panel */}
-          <View style={styles.detailsBlockCard}>
-            <Text style={styles.blockTitle}>Saved Addresses</Text>
+          <View style={styles.sectionCard}>
+            <View style={styles.sectionHeaderRow}>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                <MapPin size={18} color={THEME.colors.primary} />
+                <Text style={styles.sectionTitle}>Saved Addresses</Text>
+              </View>
+              <Text style={styles.sectionCount}>{addresses.length}</Text>
+            </View>
             {addresses.length === 0 ? (
-              <Text style={styles.emptyBlockText}>No saved addresses found. Add one during checkout.</Text>
+              <Text style={styles.emptyBlockText}>
+                No saved addresses. Add one during checkout.
+              </Text>
             ) : (
               <View style={styles.addressList}>
                 {addresses.map((addr) => (
                   <View key={addr.id} style={styles.addressCardItem}>
-                    <MapPin size={16} color={THEME.colors.textSecondary} style={{ marginTop: 2 }} />
+                    <View style={styles.addressDot} />
                     <View style={{ flex: 1 }}>
                       <Text style={styles.addressStreet}>{addr.street}</Text>
                       <Text style={styles.addressSub}>
@@ -286,23 +349,43 @@ export default function ProfileScreen() {
           </View>
 
           {/* Favourites Panel */}
-          <View style={styles.detailsBlockCard}>
-            <View style={styles.blockHeaderRow}>
-              <Heart size={18} color="#EF4444" fill="#EF4444" />
-              <Text style={[styles.blockTitle, { marginLeft: 6 }]}>My Favourites</Text>
+          <View style={styles.sectionCard}>
+            <View style={styles.sectionHeaderRow}>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                <Heart size={18} color="#EF4444" fill="#EF4444" />
+                <Text style={styles.sectionTitle}>My Favourites</Text>
+              </View>
+              <Text style={styles.sectionCount}>{mockFavourites.length}</Text>
             </View>
-            <View style={styles.favGrid}>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.favScrollRow}
+            >
               {mockFavourites.map((fav) => (
                 <View key={fav.id} style={styles.favItemCard}>
-                  <Image source={{ uri: getProductImage(fav.name, fav.category) }} style={styles.favImage} />
-                  <View style={styles.favInfo}>
-                    <Text style={styles.favName} numberOfLines={1}>{fav.name}</Text>
-                    <Text style={styles.favPrice}>${fav.price}</Text>
-                  </View>
+                  <Image
+                    source={{ uri: getProductImage(fav.name, fav.category) }}
+                    style={styles.favImage}
+                  />
+                  <Text style={styles.favName} numberOfLines={1}>
+                    {fav.name}
+                  </Text>
+                  <Text style={styles.favPrice}>${fav.price.toFixed(2)}</Text>
                 </View>
               ))}
-            </View>
+            </ScrollView>
           </View>
+
+          {/* Logout at Bottom */}
+          <TouchableOpacity
+            style={styles.logoutCard}
+            onPress={handleLogout}
+            activeOpacity={0.7}
+          >
+            <LogOut size={18} color={THEME.colors.error} />
+            <Text style={styles.logoutCardText}>Sign Out</Text>
+          </TouchableOpacity>
         </ScrollView>
       )}
     </SafeAreaView>
@@ -312,7 +395,7 @@ export default function ProfileScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#F5F3FF",
+    backgroundColor: "#F8FAFC",
   },
   header: {
     flexDirection: "row",
@@ -320,17 +403,18 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingHorizontal: THEME.spacing.lg,
     paddingVertical: THEME.spacing.md,
-    backgroundColor: "#FFFFFF",
-    borderBottomWidth: 1,
-    borderColor: "#E2E8F0",
+    backgroundColor: THEME.colors.primary,
   },
   backButton: {
     padding: 4,
   },
   headerTitle: {
     fontSize: 16,
-    fontWeight: "800",
-    color: THEME.colors.textPrimary,
+    fontWeight: "900",
+    color: "#FFFFFF",
+  },
+  logoutBtn: {
+    padding: 4,
   },
   loadingContainer: {
     flex: 1,
@@ -343,86 +427,126 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
   scrollContent: {
-    padding: THEME.spacing.md,
-    gap: THEME.spacing.md,
+    paddingBottom: 32,
   },
-  avatarCard: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 20,
-    padding: 24,
+
+  /* Hero Profile Banner */
+  heroBanner: {
+    backgroundColor: THEME.colors.primary,
+    paddingBottom: 32,
+    borderBottomLeftRadius: 32,
+    borderBottomRightRadius: 32,
+  },
+  heroGradient: {
     alignItems: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.02,
-    shadowRadius: 5,
-    elevation: 2,
+    paddingTop: 8,
+    paddingBottom: 8,
   },
   largeAvatar: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: THEME.colors.primary,
+    width: 90,
+    height: 90,
+    borderRadius: 45,
+    backgroundColor: "rgba(255,255,255,0.25)",
     justifyContent: "center",
     alignItems: "center",
     marginBottom: 12,
-    borderWidth: 2,
-    borderColor: "#E9D5FF",
+    borderWidth: 3,
+    borderColor: "rgba(255,255,255,0.5)",
   },
   largeAvatarText: {
     color: "#FFFFFF",
-    fontSize: 32,
-    fontWeight: "800",
+    fontSize: 36,
+    fontWeight: "900",
   },
   profileName: {
-    fontSize: 16,
-    fontWeight: "800",
-    color: THEME.colors.textPrimary,
+    fontSize: 20,
+    fontWeight: "900",
+    color: "#FFFFFF",
   },
   profileEmail: {
     fontSize: 12,
-    color: THEME.colors.textSecondary,
+    color: "rgba(255,255,255,0.75)",
     marginTop: 4,
-    marginBottom: 16,
   },
-  quickNavRow: {
-    flexDirection: "row",
-    gap: 16,
-    width: "100%",
-    justifyContent: "center",
-    borderTopWidth: 1,
-    borderColor: "#F1F5F9",
-    paddingTop: 16,
+  ageBadge: {
+    backgroundColor: "rgba(255,255,255,0.2)",
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 3,
+    marginTop: 8,
   },
-  quickNavBtn: {
+  ageBadgeText: {
+    color: "#FFFFFF",
+    fontSize: 11,
+    fontWeight: "700",
+  },
+
+  /* Navigation Menu */
+  menuCard: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 20,
+    marginHorizontal: THEME.spacing.md,
+    marginTop: -20,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.04,
+    shadowRadius: 16,
+    elevation: 6,
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+  },
+  menuRow: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#F5F3FF",
-    borderWidth: 1,
-    borderColor: "#E9D5FF",
+    paddingVertical: 14,
     paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 12,
-    gap: 8,
   },
-  quickNavLabel: {
-    fontSize: 12,
-    fontWeight: "700",
+  menuRowBorder: {
+    borderBottomWidth: 1,
+    borderColor: "#F1F5F9",
+  },
+  menuIconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: "#F8FAFC",
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 12,
+  },
+  menuTextContainer: {
+    flex: 1,
+  },
+  menuLabel: {
+    fontSize: 13,
+    fontWeight: "800",
     color: THEME.colors.textPrimary,
   },
+  menuSubtitle: {
+    fontSize: 11,
+    color: THEME.colors.textSecondary,
+    marginTop: 1,
+  },
+
+  /* Edit Form */
   formCard: {
     backgroundColor: "#FFFFFF",
     borderRadius: 20,
+    marginHorizontal: THEME.spacing.md,
+    marginTop: THEME.spacing.md,
     padding: THEME.spacing.lg,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.02,
-    shadowRadius: 5,
-    elevation: 2,
+    shadowRadius: 10,
+    elevation: 3,
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
     gap: THEME.spacing.md,
   },
   formSectionTitle: {
-    fontSize: 13,
-    fontWeight: "800",
+    fontSize: 12,
+    fontWeight: "900",
     color: THEME.colors.textPrimary,
     textTransform: "uppercase",
     letterSpacing: 0.5,
@@ -434,7 +558,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#F8FAFC",
     borderWidth: 1.5,
     borderColor: "#E2E8F0",
-    borderRadius: 12,
+    borderRadius: 14,
   },
   inputIcon: {
     paddingHorizontal: 12,
@@ -448,7 +572,7 @@ const styles = StyleSheet.create({
   },
   saveButton: {
     backgroundColor: THEME.colors.primary,
-    borderRadius: 14,
+    borderRadius: 16,
     paddingVertical: 14,
     flexDirection: "row",
     justifyContent: "center",
@@ -458,28 +582,43 @@ const styles = StyleSheet.create({
   saveButtonText: {
     color: "#FFFFFF",
     fontSize: 14,
-    fontWeight: "700",
+    fontWeight: "800",
   },
-  detailsBlockCard: {
+
+  /* Section Cards */
+  sectionCard: {
     backgroundColor: "#FFFFFF",
     borderRadius: 20,
+    marginHorizontal: THEME.spacing.md,
+    marginTop: THEME.spacing.md,
     padding: THEME.spacing.lg,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.02,
-    shadowRadius: 5,
-    elevation: 2,
+    shadowRadius: 10,
+    elevation: 3,
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
   },
-  blockTitle: {
-    fontSize: 14,
-    fontWeight: "800",
-    color: THEME.colors.textPrimary,
-    marginBottom: 12,
-  },
-  blockHeaderRow: {
+  sectionHeaderRow: {
     flexDirection: "row",
+    justifyContent: "space-between",
     alignItems: "center",
     marginBottom: 12,
+  },
+  sectionTitle: {
+    fontSize: 14,
+    fontWeight: "900",
+    color: THEME.colors.textPrimary,
+  },
+  sectionCount: {
+    fontSize: 12,
+    fontWeight: "800",
+    color: THEME.colors.textSecondary,
+    backgroundColor: "#F1F5F9",
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 6,
   },
   emptyBlockText: {
     fontSize: 12,
@@ -487,21 +626,28 @@ const styles = StyleSheet.create({
     fontStyle: "italic",
   },
   addressList: {
-    gap: 12,
+    gap: 10,
   },
   addressCardItem: {
     flexDirection: "row",
     alignItems: "flex-start",
     backgroundColor: "#F8FAFC",
-    borderRadius: 12,
+    borderRadius: 14,
     padding: 12,
     borderWidth: 1,
     borderColor: "#E2E8F0",
-    gap: 8,
+    gap: 10,
+  },
+  addressDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: THEME.colors.primary,
+    marginTop: 5,
   },
   addressStreet: {
-    fontSize: 12,
-    fontWeight: "700",
+    fontSize: 13,
+    fontWeight: "800",
     color: THEME.colors.textPrimary,
   },
   addressSub: {
@@ -509,39 +655,58 @@ const styles = StyleSheet.create({
     color: THEME.colors.textSecondary,
     marginTop: 2,
   },
-  favGrid: {
-    flexDirection: "row",
-    gap: 12,
+
+  /* Favourites */
+  favScrollRow: {
+    gap: 10,
+    paddingRight: 4,
   },
   favItemCard: {
-    flex: 1,
-    flexDirection: "row",
+    width: 120,
     backgroundColor: "#F8FAFC",
-    borderRadius: 12,
-    padding: 8,
+    borderRadius: 16,
     borderWidth: 1,
     borderColor: "#E2E8F0",
-    alignItems: "center",
-    gap: 8,
+    overflow: "hidden",
   },
   favImage: {
-    width: 48,
-    height: 48,
-    borderRadius: 8,
+    width: "100%",
+    height: 90,
     backgroundColor: "#E2E8F0",
-  },
-  favInfo: {
-    flex: 1,
   },
   favName: {
     fontSize: 11,
-    fontWeight: "700",
+    fontWeight: "800",
     color: THEME.colors.textPrimary,
+    paddingHorizontal: 8,
+    paddingTop: 8,
   },
   favPrice: {
-    fontSize: 11,
-    fontWeight: "800",
-    color: "#EF4444",
+    fontSize: 12,
+    fontWeight: "900",
+    color: THEME.colors.error,
+    paddingHorizontal: 8,
+    paddingBottom: 8,
     marginTop: 2,
+  },
+
+  /* Logout Card */
+  logoutCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 16,
+    marginHorizontal: THEME.spacing.md,
+    marginTop: THEME.spacing.md,
+    paddingVertical: 14,
+    borderWidth: 1,
+    borderColor: "#FCA5A5",
+  },
+  logoutCardText: {
+    fontSize: 14,
+    fontWeight: "800",
+    color: THEME.colors.error,
   },
 });
