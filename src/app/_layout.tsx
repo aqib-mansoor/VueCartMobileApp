@@ -18,8 +18,9 @@ function RootLayoutNavigation() {
         router.replace("/home" as any);
       }
     } else {
-      // If not logged in and trying to access home or cart, redirect to login
-      if (segments[0] === "home" || segments[0] === "cart") {
+      // If not logged in and trying to access protected screens, redirect to login
+      const isProtected = ["home", "cart", "checkout", "orders", "profile"].includes(segments[0] || "");
+      if (isProtected) {
         router.replace("/login" as any);
       }
     }

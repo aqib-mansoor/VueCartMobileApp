@@ -1,9 +1,11 @@
-import React from "react";
-import { StyleSheet, View, Text, TouchableOpacity, ScrollView, Image } from "react-native";
-import { X, ShoppingCart, Sparkles } from "lucide-react-native";
+import React, { useState, useEffect } from "react";
+import { StyleSheet, View, Text, TouchableOpacity, ScrollView, Image, ActivityIndicator } from "react-native";
+import { X, ShoppingCart, Sparkles, Star } from "lucide-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { THEME } from "../constants/theme";
 import { getProductImage } from "./ProductCard";
+import { apiClient } from "../utils/api";
+import { API_ENDPOINTS } from "../constants/endpoints";
 
 type Product = {
   id: number;
@@ -13,6 +15,18 @@ type Product = {
   stock: number;
   category_id: number;
   category?: { name: string };
+};
+
+type Review = {
+  id: number;
+  user_id: number;
+  rating: number;
+  comment: string;
+  created_at: string;
+  user?: {
+    id: number;
+    name: string;
+  };
 };
 
 type ProductDetailModalProps = {
@@ -27,15 +41,42 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
   onAddToCart,
 }) => {
   const insets = useSafeAreaInsets();
+  const [reviews, setReviews] = useState<Review[]>([]);
+  const [isReviewsLoading, setIsReviewsLoading] = useState(false);
+
+  useEffect(() => {
+    if (product) {
+      fetchReviews(product.id);
+    }
+  }, [product]);
+
+  const fetchReviews = async (productId: number) => {
+    setIsReviewsLoading(true);
+    try {
+      const res = await apiClient.get(`${API_ENDPOINTS.PRODUCTS}/${productId}/reviews`);
+      if (res.ok) {
+        const data = await res.json();
+        setReviews(data.reviews || data.data || []);
+      }
+    } catch (e) {
+      console.error("Error fetching product reviews:", e);
+    } finally {
+      setIsReviewsLoading(false);
+    }
+  };
+
   if (!product) return null;
 
   // Mirror the exact dynamic values from ProductCard
-  const rating = (4.0 + ((product.id * 7) % 10) * 0.1).toFixed(1);
+  const rating = reviews.length > 0
+    ? (reviews.reduce((acc, r) => acc + r.rating, 0) / reviews.length).toFixed(1)
+    : (4.0 + ((product.id * 7) % 10) * 0.1).toFixed(1);
   const soldCount = 50 + ((product.id * 23) % 900);
   const discountPercent = 15 + ((product.id * 5) % 25);
   const salePrice = Number(product.price);
   const originalPrice = salePrice / (1 - discountPercent / 100);
   const hasFreeDelivery = product.id % 2 === 0;
+
 
   return (
     <View style={styles.modalOverlay}>
@@ -118,6 +159,44 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
           <View style={styles.modalSection}>
             <Text style={styles.modalSectionTitle}>Product Specifications</Text>
             <Text style={styles.modalDescription}>{product.description || "High-quality item sourced from trusted distributors."}</Text>
+          </View>
+
+          {/* Customer Reviews Section */}
+          <View style={styles.modalSection}>
+            <Text style={styles.modalSectionTitle}>Customer Reviews ({reviews.length})</Text>
+            {isReviewsLoading ? (
+              <ActivityIndicator size="small" color={THEME.colors.primary} style={{ marginVertical: 12 }} />
+            ) : reviews.length === 0 ? (
+              <Text style={styles.noReviewsText}>No reviews yet. Be the first to review this product!</Text>
+            ) : (
+              <View style={styles.reviewsList}>
+                {reviews.map((rev) => (
+                  <View key={rev.id} style={styles.reviewItem}>
+                    <View style={styles.reviewHeader}>
+                      <View style={styles.reviewUserAvatar}>
+                        <Text style={styles.reviewUserAvatarText}>
+                          {rev.user?.name ? rev.user.name[0].toUpperCase() : "U"}
+                        </Text>
+                      </View>
+                      <View style={styles.reviewUserInfo}>
+                        <Text style={styles.reviewUserName}>{rev.user?.name || "Customer"}</Text>
+                        <View style={styles.reviewStarsRow}>
+                          {[1, 2, 3, 4, 5].map((star) => (
+                            <Text key={star} style={{ fontSize: 10, color: star <= rev.rating ? "#F59E0B" : THEME.colors.textMuted }}>
+                              ★
+                            </Text>
+                          ))}
+                        </View>
+                      </View>
+                      <Text style={styles.reviewDate}>
+                        {new Date(rev.created_at).toLocaleDateString()}
+                      </Text>
+                    </View>
+                    <Text style={styles.reviewComment}>{rev.comment}</Text>
+                  </View>
+                ))}
+              </View>
+            )}
           </View>
 
           {/* Promotional Loyalty Text (Tata Neu styling) */}
@@ -317,6 +396,64 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: THEME.colors.textSecondary,
     lineHeight: 18,
+  },
+  noReviewsText: {
+    fontSize: 11,
+    color: THEME.colors.textSecondary,
+    fontStyle: "italic",
+    paddingVertical: 4,
+  },
+  reviewsList: {
+    gap: 8,
+    marginTop: 4,
+  },
+  reviewItem: {
+    backgroundColor: "#F8FAFC",
+    borderRadius: 10,
+    padding: 10,
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+  },
+  reviewHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 6,
+  },
+  reviewUserAvatar: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: THEME.colors.primary,
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 8,
+  },
+  reviewUserAvatarText: {
+    color: "#FFFFFF",
+    fontSize: 10,
+    fontWeight: "700",
+  },
+  reviewUserInfo: {
+    flex: 1,
+  },
+  reviewUserName: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: THEME.colors.textPrimary,
+  },
+  reviewStarsRow: {
+    flexDirection: "row",
+    gap: 1,
+    marginTop: 1,
+  },
+  reviewDate: {
+    fontSize: 10,
+    color: THEME.colors.textMuted,
+  },
+  reviewComment: {
+    fontSize: 11,
+    color: THEME.colors.textSecondary,
+    lineHeight: 16,
   },
   modalBenefitsCard: {
     flexDirection: "row",

@@ -1,6 +1,6 @@
 import React from "react";
 import { StyleSheet, View, Text, TouchableOpacity } from "react-native";
-import { ShoppingCart, LogOut, Crown } from "lucide-react-native";
+import { ShoppingCart, LogOut, Crown, ClipboardList } from "lucide-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { THEME } from "../constants/theme";
 
@@ -9,6 +9,8 @@ type WelcomeHeaderProps = {
   cartCount: number;
   onLogout: () => void;
   onCartPress: () => void;
+  onOrdersPress: () => void;
+  onProfilePress: () => void;
 };
 
 export const WelcomeHeader: React.FC<WelcomeHeaderProps> = ({
@@ -16,12 +18,18 @@ export const WelcomeHeader: React.FC<WelcomeHeaderProps> = ({
   cartCount,
   onLogout,
   onCartPress,
+  onOrdersPress,
+  onProfilePress,
 }) => {
   const insets = useSafeAreaInsets();
 
   return (
     <View style={[styles.header, { paddingTop: insets.top + THEME.spacing.sm }]}>
-      <View style={styles.welcomeSection}>
+      <TouchableOpacity
+        style={styles.welcomeSection}
+        onPress={onProfilePress}
+        activeOpacity={0.7}
+      >
         <View style={styles.avatarWrapper}>
           <View style={styles.avatar}>
             <Text style={styles.avatarText}>
@@ -47,7 +55,7 @@ export const WelcomeHeader: React.FC<WelcomeHeaderProps> = ({
             {userName ? `Hello, ${userName}` : "Welcome to CartVue"}
           </Text>
         </View>
-      </View>
+      </TouchableOpacity>
 
       <View style={styles.headerActions}>
         {userName && (
@@ -55,6 +63,9 @@ export const WelcomeHeader: React.FC<WelcomeHeaderProps> = ({
             <LogOut size={18} color={THEME.colors.textSecondary} />
           </TouchableOpacity>
         )}
+        <TouchableOpacity style={styles.ordersIconButton} onPress={onOrdersPress} activeOpacity={0.7}>
+          <ClipboardList size={20} color={THEME.colors.textPrimary} />
+        </TouchableOpacity>
         <TouchableOpacity style={styles.cartIconButton} onPress={onCartPress} activeOpacity={0.7}>
           <ShoppingCart size={22} color={THEME.colors.textPrimary} />
           {cartCount > 0 && (
@@ -161,6 +172,9 @@ const styles = StyleSheet.create({
     gap: THEME.spacing.md,
   },
   logoutIconButton: {
+    padding: 6,
+  },
+  ordersIconButton: {
     padding: 6,
   },
   cartIconButton: {

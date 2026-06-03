@@ -97,6 +97,8 @@ export default function HomeScreen() {
         cartCount={cartCount}
         onLogout={handleLogout}
         onCartPress={() => router.push("/cart" as any)}
+        onOrdersPress={() => router.push("/orders" as any)}
+        onProfilePress={() => router.push("/profile" as any)}
       />
 
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
