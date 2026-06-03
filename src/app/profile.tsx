@@ -6,7 +6,6 @@ import {
   TouchableOpacity,
   TextInput,
   ActivityIndicator,
-  Alert,
   ScrollView,
   Image,
 } from "react-native";
@@ -15,7 +14,6 @@ import { StatusBar } from "expo-status-bar";
 import { SafeAreaView } from "react-native-safe-area-context";
 import {
   ChevronLeft,
-  ChevronRight,
   User,
   Mail,
   Calendar,
@@ -34,6 +32,8 @@ import { API_ENDPOINTS } from "../constants/endpoints";
 import { useAuth } from "../context/AuthContext";
 import { getProductImage } from "../components/ProductCard";
 import { useToast } from "../components/Toast";
+import { MenuItem } from "../components/profile/MenuItem";
+import { useConfirm } from "../components/ConfirmDialog";
 
 type Address = {
   id: number;
@@ -48,6 +48,7 @@ export default function ProfileScreen() {
   const router = useRouter();
   const { authToken, login, logout } = useAuth();
   const { showToast } = useToast();
+  const { showConfirm } = useConfirm();
 
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -137,17 +138,17 @@ export default function ProfileScreen() {
   };
 
   const handleLogout = () => {
-    Alert.alert("Logout", "Are you sure you want to sign out?", [
-      { text: "Cancel", style: "cancel" },
-      {
-        text: "Sign Out",
-        style: "destructive",
-        onPress: async () => {
-          await logout();
-          router.replace("/login" as any);
-        },
+    showConfirm({
+      title: "Logout",
+      message: "Are you sure you want to sign out?",
+      confirmText: "Sign Out",
+      cancelText: "Cancel",
+      type: "danger",
+      onConfirm: async () => {
+        await logout();
+        router.replace("/login" as any);
       },
-    ]);
+    });
   };
 
   // Navigation menu items
@@ -219,22 +220,14 @@ export default function ProfileScreen() {
           {/* Quick Navigation Menu */}
           <View style={styles.menuCard}>
             {menuItems.map((item, idx) => (
-              <TouchableOpacity
+              <MenuItem
                 key={idx}
-                style={[
-                  styles.menuRow,
-                  idx < menuItems.length - 1 && styles.menuRowBorder,
-                ]}
+                icon={item.icon}
+                label={item.label}
+                subtitle={item.subtitle}
                 onPress={item.onPress}
-                activeOpacity={0.7}
-              >
-                <View style={styles.menuIconContainer}>{item.icon}</View>
-                <View style={styles.menuTextContainer}>
-                  <Text style={styles.menuLabel}>{item.label}</Text>
-                  <Text style={styles.menuSubtitle}>{item.subtitle}</Text>
-                </View>
-                <ChevronRight size={18} color={THEME.colors.textMuted} />
-              </TouchableOpacity>
+                isLast={idx === menuItems.length - 1}
+              />
             ))}
           </View>
 
@@ -497,39 +490,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#E2E8F0",
   },
-  menuRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingVertical: 14,
-    paddingHorizontal: 16,
-  },
-  menuRowBorder: {
-    borderBottomWidth: 1,
-    borderColor: "#F1F5F9",
-  },
-  menuIconContainer: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-    backgroundColor: "#F8FAFC",
-    justifyContent: "center",
-    alignItems: "center",
-    marginRight: 12,
-  },
-  menuTextContainer: {
-    flex: 1,
-  },
-  menuLabel: {
-    fontSize: 13,
-    fontWeight: "800",
-    color: THEME.colors.textPrimary,
-  },
-  menuSubtitle: {
-    fontSize: 11,
-    color: THEME.colors.textSecondary,
-    marginTop: 1,
-  },
-
   /* Edit Form */
   formCard: {
     backgroundColor: "#FFFFFF",

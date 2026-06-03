@@ -24,6 +24,7 @@ import { API_ENDPOINTS } from "../constants/endpoints";
 import { getProductImage } from "../components/ProductCard";
 import { useToast } from "../components/Toast";
 import { formatOrderNumber } from "../utils/orderUtils";
+import { OrderSuccessOverlay } from "../components/checkout/OrderSuccessOverlay";
 
 type Address = { id: number; street: string; city: string; state: string; zip: string; country: string; };
 type CartItem = { cart_item_id: number; product_id: number; name: string; price: string | number; quantity: number; total_price: number; };
@@ -48,31 +49,7 @@ export default function CheckoutScreen() {
   const [orderSuccess, setOrderSuccess] = useState(false);
   const [placedOrderId, setPlacedOrderId] = useState<number | null>(null);
 
-  // Success animations
-  const checkScale = useRef(new Animated.Value(0)).current;
-  const checkRotate = useRef(new Animated.Value(0)).current;
-  const confettiAnim = useRef(new Animated.Value(0)).current;
-  const cardSlide = useRef(new Animated.Value(60)).current;
-  const cardOpacity = useRef(new Animated.Value(0)).current;
-
   useEffect(() => { fetchCheckoutData(); }, []);
-
-  useEffect(() => {
-    if (orderSuccess) {
-      // Sequence success animations
-      Animated.sequence([
-        Animated.parallel([
-          Animated.spring(checkScale, { toValue: 1, tension: 50, friction: 5, useNativeDriver: true }),
-          Animated.timing(checkRotate, { toValue: 1, duration: 600, easing: Easing.out(Easing.back(1.5)), useNativeDriver: true }),
-        ]),
-        Animated.parallel([
-          Animated.timing(confettiAnim, { toValue: 1, duration: 500, useNativeDriver: true }),
-          Animated.timing(cardSlide, { toValue: 0, duration: 500, easing: Easing.out(Easing.exp), useNativeDriver: true }),
-          Animated.timing(cardOpacity, { toValue: 1, duration: 400, useNativeDriver: true }),
-        ]),
-      ]).start();
-    }
-  }, [orderSuccess]);
 
   const fetchCheckoutData = async () => {
     setIsLoading(true);
@@ -156,104 +133,15 @@ export default function CheckoutScreen() {
 
   // ─── SUCCESS SCREEN ─────────────────────────────────────────
   if (orderSuccess) {
-    const rotation = checkRotate.interpolate({
-      inputRange: [0, 1],
-      outputRange: ["0deg", "360deg"],
-    });
-
     return (
-      <SafeAreaView style={s.successContainer}>
-        <StatusBar style="dark" />
-        <Stack.Screen options={{ headerShown: false }} />
-        <ScrollView contentContainerStyle={s.successScroll} showsVerticalScrollIndicator={false}>
-
-          {/* Animated Check with Rings */}
-          <View style={s.successRings}>
-            <Animated.View style={[s.ringOuter, { opacity: confettiAnim }]} />
-            <Animated.View style={[s.ringMiddle, { opacity: confettiAnim }]} />
-            <Animated.View
-              style={[
-                s.successCheckCircle,
-                { transform: [{ scale: checkScale }, { rotate: rotation }] },
-              ]}
-            >
-              <Check size={48} color="#FFF" strokeWidth={3} />
-            </Animated.View>
-          </View>
-
-          <Animated.View style={{ alignItems: "center", opacity: confettiAnim }}>
-            <Text style={s.successEmoji}>🎉</Text>
-            <Text style={s.successTitle}>Order Placed Successfully!</Text>
-            <View style={s.orderIdPill}>
-              <Text style={s.orderIdPillText}>{formatOrderNumber(placedOrderId)}</Text>
-            </View>
-            <Text style={s.successSub}>
-              Thank you for your purchase! Your order is being processed and you'll receive an email confirmation shortly.
-            </Text>
-          </Animated.View>
-
-          {/* Status Timeline */}
-          <Animated.View style={[s.timelineCard, { transform: [{ translateY: cardSlide }], opacity: cardOpacity }]}>
-            <Text style={s.timelineTitle}>Order Timeline</Text>
-            {[
-              { label: "Order Confirmed", sub: "Just now", done: true, icon: Check },
-              { label: "Being Packed", sub: "Estimated in 2 hours", done: false, icon: ShoppingBag },
-              { label: "Shipped", sub: "Estimated tomorrow", done: false, icon: Truck },
-              { label: "Delivered", sub: deliveryDate, done: false, icon: Gift },
-            ].map((step, idx) => (
-              <View key={idx} style={s.timelineRow}>
-                <View style={s.timelineLeft}>
-                  <View style={[s.timelineDot, step.done && s.timelineDotDone]}>
-                    {step.done ? <Check size={10} color="#FFF" strokeWidth={3} /> : <View style={s.timelineDotInner} />}
-                  </View>
-                  {idx < 3 && <View style={[s.timelineLine, step.done && s.timelineLineDone]} />}
-                </View>
-                <View style={s.timelineContent}>
-                  <Text style={[s.timelineLabel, step.done && s.timelineLabelDone]}>{step.label}</Text>
-                  <Text style={s.timelineSub}>{step.sub}</Text>
-                </View>
-                <step.icon size={16} color={step.done ? "#16A34A" : "#CBD5E1"} />
-              </View>
-            ))}
-          </Animated.View>
-
-          {/* Items Ordered */}
-          <Animated.View style={[s.successItemsCard, { transform: [{ translateY: cardSlide }], opacity: cardOpacity }]}>
-            <Text style={s.successItemsTitle}>Items Ordered ({cartItems.length})</Text>
-            {cartItems.map(item => (
-              <View key={item.cart_item_id} style={s.successItemRow}>
-                <Image
-                  source={{ uri: getProductImage(item.name) }}
-                  style={s.successItemImg}
-                  defaultSource={require("../../assets/images/icon.png")}
-                />
-                <View style={{ flex: 1 }}>
-                  <Text style={s.successItemName} numberOfLines={1}>{item.name}</Text>
-                  <Text style={s.successItemMeta}>Qty: {item.quantity} · ${Number(item.price).toFixed(2)}</Text>
-                </View>
-                <Text style={s.successItemPrice}>${(Number(item.price) * item.quantity).toFixed(2)}</Text>
-              </View>
-            ))}
-            <View style={s.successTotalRow}>
-              <Text style={s.successTotalLabel}>Total Paid</Text>
-              <Text style={s.successTotalVal}>${finalTotal.toFixed(2)}</Text>
-            </View>
-          </Animated.View>
-
-          {/* Action Buttons */}
-          <Animated.View style={[{ width: "100%" }, { transform: [{ translateY: cardSlide }], opacity: cardOpacity }]}>
-            <TouchableOpacity style={s.successPrimaryBtn} onPress={() => router.replace("/orders" as any)} activeOpacity={0.9}>
-              <Truck size={18} color="#FFF" style={{ marginRight: 8 }} />
-              <Text style={s.successPrimaryText}>Track Your Order</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity style={s.successSecondaryBtn} onPress={() => router.replace("/home" as any)} activeOpacity={0.7}>
-              <ShoppingBag size={16} color={THEME.colors.primary} style={{ marginRight: 6 }} />
-              <Text style={s.successSecondaryText}>Continue Shopping</Text>
-            </TouchableOpacity>
-          </Animated.View>
-        </ScrollView>
-      </SafeAreaView>
+      <OrderSuccessOverlay
+        placedOrderId={placedOrderId}
+        cartItems={cartItems}
+        finalTotal={finalTotal}
+        deliveryDate={deliveryDate}
+        onTrackOrder={() => router.replace("/orders" as any)}
+        onContinueShopping={() => router.replace("/home" as any)}
+      />
     );
   }
 

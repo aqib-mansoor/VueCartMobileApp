@@ -19,6 +19,8 @@ import { apiClient } from "../utils/api";
 import { API_ENDPOINTS } from "../constants/endpoints";
 import { getProductImage } from "../components/ProductCard";
 import { useToast } from "../components/Toast";
+import { CartItemRow } from "../components/cart/CartItemRow";
+import { useConfirm } from "../components/ConfirmDialog";
 
 type CartItem = {
   cart_item_id: number;
@@ -37,6 +39,7 @@ type CartMeta = {
 export default function CartScreen() {
   const router = useRouter();
   const { showToast } = useToast();
+  const { showConfirm } = useConfirm();
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [meta, setMeta] = useState<CartMeta>({ total_items: 0, grand_total: 0 });
   const [isLoading, setIsLoading] = useState(true);
@@ -100,17 +103,26 @@ export default function CartScreen() {
     } catch { setCartItems(orig); fetchCartData(); }
   };
 
-  const handleClearCart = async () => {
-    setIsClearing(true);
-    try {
-      const res = await apiClient.delete(API_ENDPOINTS.CART_CLEAR);
-      if (res.ok) {
-        Animated.timing(wipeAnim, { toValue: 0, duration: 400, useNativeDriver: true }).start(() => {
-          setCartItems([]); setMeta({ total_items: 0, grand_total: 0 }); wipeAnim.setValue(1); setIsClearing(false);
-          showToast({ message: "Cart cleared successfully", type: "success" });
-        });
-      } else { setIsClearing(false); showToast({ message: "Failed to clear cart", type: "error" }); }
-    } catch { setIsClearing(false); showToast({ message: "Network error", type: "error" }); }
+  const handleClearCart = () => {
+    showConfirm({
+      title: "Clear Cart",
+      message: "Are you sure you want to remove all items from your cart?",
+      confirmText: "Clear All",
+      cancelText: "Cancel",
+      type: "danger",
+      onConfirm: async () => {
+        setIsClearing(true);
+        try {
+          const res = await apiClient.delete(API_ENDPOINTS.CART_CLEAR);
+          if (res.ok) {
+            Animated.timing(wipeAnim, { toValue: 0, duration: 400, useNativeDriver: true }).start(() => {
+              setCartItems([]); setMeta({ total_items: 0, grand_total: 0 }); wipeAnim.setValue(1); setIsClearing(false);
+              showToast({ message: "Cart cleared successfully", type: "success" });
+            });
+          } else { setIsClearing(false); showToast({ message: "Failed to clear cart", type: "error" }); }
+        } catch { setIsClearing(false); showToast({ message: "Network error", type: "error" }); }
+      }
+    });
   };
 
   const discount = meta.grand_total * 0.05;
@@ -175,56 +187,15 @@ export default function CartScreen() {
                 <Text style={s.deliveryBannerText}>Free delivery on orders above $25</Text>
               </View>
 
-              {cartItems.map((item, idx) => {
-                const img = getProductImage(item.name);
-                const disc = 15 + ((item.product_id * 5) % 25);
-                const sale = Number(item.price);
-                const orig = sale / (1 - disc / 100);
-                const deliveryDate = new Date(Date.now() + (3 + idx) * 86400000).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
-
-                return (
-                  <View key={item.cart_item_id} style={s.itemCard}>
-                    <View style={s.itemRow}>
-                      <Image
-                        source={{ uri: img }}
-                        style={s.productImg}
-                        resizeMode="cover"
-                        defaultSource={require("../../assets/images/icon.png")}
-                      />
-                      <View style={s.itemInfo}>
-                        <Text style={s.itemName} numberOfLines={2}>{item.name}</Text>
-                        <View style={s.priceRow}>
-                          <Text style={s.salePrice}>${sale.toFixed(2)}</Text>
-                          <Text style={s.origPrice}>${orig.toFixed(2)}</Text>
-                          <View style={s.discBadge}><Text style={s.discText}>{disc}% off</Text></View>
-                        </View>
-                        <View style={s.deliveryRow}>
-                          <Truck size={12} color="#16A34A" />
-                          <Text style={s.deliveryText}>Delivery by {deliveryDate}</Text>
-                        </View>
-                      </View>
-                    </View>
-
-                    {/* Actions Row */}
-                    <View style={s.actionsRow}>
-                      <TouchableOpacity onPress={() => handleRemoveItem(item.cart_item_id)} style={s.removeBtn} activeOpacity={0.7}>
-                        <Trash2 size={14} color={THEME.colors.textSecondary} />
-                        <Text style={s.removeBtnText}>Remove</Text>
-                      </TouchableOpacity>
-
-                      <View style={s.qtyRow}>
-                        <TouchableOpacity onPress={() => updateQuantity(item.cart_item_id, item.quantity - 1, item.quantity)} style={s.qtyBtn} activeOpacity={0.7}>
-                          <Minus size={14} color={THEME.colors.textPrimary} />
-                        </TouchableOpacity>
-                        <Text style={s.qtyNum}>{item.quantity}</Text>
-                        <TouchableOpacity onPress={() => updateQuantity(item.cart_item_id, item.quantity + 1, item.quantity)} style={s.qtyBtn} activeOpacity={0.7}>
-                          <Plus size={14} color={THEME.colors.textPrimary} />
-                        </TouchableOpacity>
-                      </View>
-                    </View>
-                  </View>
-                );
-              })}
+              {cartItems.map((item, idx) => (
+                <CartItemRow
+                  key={item.cart_item_id}
+                  item={item}
+                  index={idx}
+                  onUpdateQuantity={updateQuantity}
+                  onRemoveItem={handleRemoveItem}
+                />
+              ))}
 
               {/* Coupon Code */}
               <View style={s.couponCard}>

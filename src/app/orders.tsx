@@ -6,24 +6,20 @@ import {
   TouchableOpacity,
   ScrollView,
   ActivityIndicator,
-  Modal,
   TextInput,
-  Image,
 } from "react-native";
 import { Stack, useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { SafeAreaView } from "react-native-safe-area-context";
-import {
-  ChevronLeft, Package, Star, X, Send, Search,
-  XCircle, Truck, RotateCcw, ShoppingBag, Clock,
-  CheckCircle, MapPin, ChevronDown, ChevronUp,
-} from "lucide-react-native";
+import { ChevronLeft, Package, Search, ShoppingBag, Clock, CheckCircle, RotateCcw, XCircle, X } from "lucide-react-native";
 import { THEME } from "../constants/theme";
 import { apiClient } from "../utils/api";
 import { API_ENDPOINTS } from "../constants/endpoints";
-import { getProductImage } from "../components/ProductCard";
 import { useToast } from "../components/Toast";
 import { formatOrderNumber } from "../utils/orderUtils";
+import { OrderCard } from "../components/orders/OrderCard";
+import { ReviewModal } from "../components/orders/ReviewModal";
+import { useConfirm } from "../components/ConfirmDialog";
 
 type OrderItem = {
   id: number;
@@ -58,6 +54,7 @@ const STATUS_CONFIG: Record<string, { bg: string; text: string; border: string; 
 export default function OrdersScreen() {
   const router = useRouter();
   const { showToast } = useToast();
+  const { showConfirm } = useConfirm();
 
   const [orders, setOrders] = useState<Order[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -122,21 +119,26 @@ export default function OrdersScreen() {
   };
 
   const handleCancelOrder = (orderId: number) => {
-    // Use toast-style confirmation
-    showToast({ message: "Cancelling order...", type: "warning", duration: 1000 });
-    setTimeout(async () => {
-      try {
-        const res = await apiClient.post(`${API_ENDPOINTS.ORDERS}/${orderId}/cancel`, {});
-        if (res.ok) {
-          setOrders(p => p.map(o => o.id === orderId ? { ...o, status: "cancelled" } : o));
-          showToast({ message: "Order cancelled successfully", type: "success" });
-        } else {
-          showToast({ message: "Failed to cancel order", type: "error" });
+    showConfirm({
+      title: "Cancel Order",
+      message: "Are you sure you want to cancel this order? This action cannot be undone.",
+      confirmText: "Cancel Order",
+      cancelText: "Keep Order",
+      type: "danger",
+      onConfirm: async () => {
+        try {
+          const res = await apiClient.post(`${API_ENDPOINTS.ORDERS}/${orderId}/cancel`, {});
+          if (res.ok) {
+            setOrders(p => p.map(o => o.id === orderId ? { ...o, status: "cancelled" } : o));
+            showToast({ message: "Order cancelled successfully", type: "success" });
+          } else {
+            showToast({ message: "Failed to cancel order", type: "error" });
+          }
+        } catch {
+          showToast({ message: "Network error — try again", type: "error" });
         }
-      } catch {
-        showToast({ message: "Network error — try again", type: "error" });
       }
-    }, 800);
+    });
   };
 
   const openReviewModal = (productId: number, productName: string) => {
@@ -272,288 +274,32 @@ export default function OrdersScreen() {
         </View>
       ) : (
         <ScrollView contentContainerStyle={s.listContent} showsVerticalScrollIndicator={false}>
-          {filtered.map(order => {
-            const stKey = order.status.toLowerCase();
-            const st = STATUS_CONFIG[stKey] || STATUS_CONFIG.pending;
-            const isExpanded = expandedOrders.has(order.id);
-            const isCompleted = stKey === "completed";
-            const isPending = stKey === "pending";
-            const orderNum = formatOrderNumber(order.id, order.created_at);
-
-            return (
-              <View key={order.id} style={s.orderCard}>
-                {/* Order Header Row */}
-                <TouchableOpacity 
-                  style={[s.orderHeader, isExpanded && s.orderHeaderExpanded]} 
-                  onPress={() => toggleExpand(order.id)} 
-                  activeOpacity={0.8}
-                >
-                  <View style={{ flex: 1 }}>
-                    <Text style={s.orderId}>{orderNum}</Text>
-                    <Text style={s.orderDate}>{formatDate(order.created_at)} · {order.items?.length || 0} item{(order.items?.length || 0) > 1 ? "s" : ""}</Text>
-                  </View>
-                  <View style={[s.statusBadge, { backgroundColor: st.bg, borderColor: st.border }]}>
-                    <st.Icon size={12} color={st.text} style={{ marginRight: 2 }} />
-                    <Text style={[s.statusText, { color: st.text }]}>{st.label}</Text>
-                  </View>
-                  {isExpanded ? <ChevronUp size={16} color={THEME.colors.textMuted} style={{ marginLeft: 6 }} /> : <ChevronDown size={16} color={THEME.colors.textMuted} style={{ marginLeft: 6 }} />}
-                </TouchableOpacity>
-
-                {/* Collapsed Preview */}
-                {!isExpanded && order.items?.length > 0 && (
-                  <View style={s.collapsedPreview}>
-                    <View style={s.collapsedProductRow}>
-                      <Image
-                        source={{ uri: getProductImage(order.items[0].product?.name || "") }}
-                        style={s.collapsedProductImg}
-                        defaultSource={require("../../assets/images/icon.png")}
-                      />
-                      <View style={s.collapsedProductInfo}>
-                        <Text style={s.collapsedProductName} numberOfLines={1}>
-                          {order.items[0].product?.name || "Premium Product"}
-                        </Text>
-                        <Text style={s.collapsedProductMeta}>
-                          Qty: {order.items[0].quantity} · ${Number(order.items[0].price).toFixed(2)} each
-                        </Text>
-                        {order.items.length > 1 && (
-                          <Text style={s.collapsedMoreText}>
-                            + {order.items.length - 1} other item{(order.items.length - 1) > 1 ? "s" : ""}
-                          </Text>
-                        )}
-                      </View>
-                    </View>
-                    <View style={s.collapsedRightCol}>
-                      <Text style={s.collapsedTotalLabel}>Total</Text>
-                      <Text style={s.collapsedTotal}>${Number(order.total_amount).toFixed(2)}</Text>
-                    </View>
-                  </View>
-                )}
-
-                {/* Expanded: Full Details */}
-                {isExpanded && (
-                  <View style={s.expandedContent}>
-                    {/* Shipping Address Box */}
-                    <View style={s.addrBox}>
-                      <View style={s.addrHeader}>
-                        <MapPin size={13} color={THEME.colors.primary} />
-                        <Text style={s.addrTitle}>Delivery Address</Text>
-                      </View>
-                      <Text style={s.addrText}>{order.shipping_address}</Text>
-                    </View>
-
-                    {/* Progress Timeline */}
-                    {stKey !== "cancelled" ? (
-                      <View style={s.timelineContainer}>
-                        {/* Track row with line segments and dots */}
-                        <View style={s.timelineTrackRow}>
-                          {[0, 1, 2, 3].map((stepIdx) => {
-                            const steps = [
-                              { label: "Ordered", reached: true },
-                              { label: "Packed", reached: stKey === "processing" || stKey === "completed" },
-                              { label: "Shipped", reached: stKey === "completed" },
-                              { label: "Delivered", reached: stKey === "completed" }
-                            ];
-                            const step = steps[stepIdx];
-                            const activeColor = THEME.colors.primary;
-                            const isLast = stepIdx === 3;
-                            // A connector segment goes from current dot to next dot if current is reached
-                            const nextStepReached = !isLast && steps[stepIdx + 1].reached;
-
-                            return (
-                              <View key={stepIdx} style={[s.trackSegmentWrapper, isLast && { flex: 0 }]}>
-                                {/* Dot */}
-                                <View style={[
-                                  s.timelineDotCircle, 
-                                  { 
-                                    backgroundColor: step.reached ? activeColor : "#FFF", 
-                                    borderColor: step.reached ? activeColor : "#CBD5E1" 
-                                  }
-                                ]}>
-                                  {step.reached && <View style={s.timelineDotInner} />}
-                                </View>
-                                {/* Line */}
-                                {!isLast && (
-                                  <View style={[
-                                    s.timelineLineSegment, 
-                                    { backgroundColor: nextStepReached ? activeColor : "#E2E8F0" }
-                                  ]} />
-                                )}
-                              </View>
-                            );
-                          })}
-                        </View>
-                        {/* Text labels row */}
-                        <View style={s.timelineLabelsRow}>
-                          {["Ordered", "Packed", "Shipped", "Delivered"].map((lbl, sIdx) => {
-                            const steps = [
-                              { reached: true },
-                              { reached: stKey === "processing" || stKey === "completed" },
-                              { reached: stKey === "completed" },
-                              { reached: stKey === "completed" }
-                            ];
-                            const reached = steps[sIdx].reached;
-                            return (
-                              <Text key={sIdx} style={[s.timelineLabelText, reached && s.timelineLabelTextActive]}>
-                                {lbl}
-                              </Text>
-                            );
-                          })}
-                        </View>
-                      </View>
-                    ) : (
-                      <View style={s.cancelledBanner}>
-                        <XCircle size={15} color={THEME.colors.error} />
-                        <Text style={s.cancelledBannerText}>This order has been cancelled.</Text>
-                      </View>
-                    )}
-
-                    {/* Items List */}
-                    <Text style={s.itemsSectionTitle}>Order Items</Text>
-                    {order.items?.map((item, idx) => {
-                      const itemName = item.product?.name || "Premium Product";
-                      const itemImgUrl = getProductImage(itemName);
-                      return (
-                        <View key={idx} style={s.itemRow}>
-                          <Image
-                            source={{ uri: itemImgUrl }}
-                            style={s.itemImg}
-                            defaultSource={require("../../assets/images/icon.png")}
-                          />
-                          <View style={s.itemInfo}>
-                            <Text style={s.itemName} numberOfLines={2}>{itemName}</Text>
-                            <Text style={s.itemMeta}>
-                              Qty: {item.quantity} · ${Number(item.price).toFixed(2)} each
-                            </Text>
-                            <Text style={s.itemSubtotal}>
-                              Subtotal: ${(item.quantity * Number(item.price)).toFixed(2)}
-                            </Text>
-                          </View>
-                          {/* Rate item button */}
-                          {isCompleted && (
-                            <TouchableOpacity
-                              style={s.reviewBtn}
-                              onPress={() => openReviewModal(item.product_id, itemName)}
-                              activeOpacity={0.8}
-                            >
-                              <Star size={13} color={THEME.colors.primary} fill={THEME.colors.primary} />
-                              <Text style={s.reviewBtnText}>Rate</Text>
-                            </TouchableOpacity>
-                          )}
-                        </View>
-                      );
-                    })}
-
-                    {/* Order Footer summary info & Actions */}
-                    <View style={s.orderFooter}>
-                      <View>
-                        <Text style={s.footerTotalLabel}>Grand Total</Text>
-                        <Text style={s.footerTotalVal}>${Number(order.total_amount).toFixed(2)}</Text>
-                      </View>
-                      <View style={s.footerActions}>
-                        {isPending && (
-                          <TouchableOpacity
-                            style={s.cancelBtn}
-                            onPress={() => handleCancelOrder(order.id)}
-                            activeOpacity={0.8}
-                          >
-                            <XCircle size={13} color={THEME.colors.error} />
-                            <Text style={s.cancelBtnText}>Cancel</Text>
-                          </TouchableOpacity>
-                        )}
-                        {isCompleted && (
-                          <TouchableOpacity
-                            style={s.buyAgainBtn}
-                            onPress={() => router.push("/home" as any)}
-                            activeOpacity={0.8}
-                          >
-                            <RotateCcw size={13} color="#FFF" />
-                            <Text style={s.buyAgainText}>Buy Again</Text>
-                          </TouchableOpacity>
-                        )}
-                      </View>
-                    </View>
-                  </View>
-                )}
-              </View>
-            );
-          })}
+          {filtered.map(order => (
+            <OrderCard
+              key={order.id}
+              order={order}
+              isExpanded={expandedOrders.has(order.id)}
+              onToggleExpand={() => toggleExpand(order.id)}
+              onCancelOrder={handleCancelOrder}
+              onBuyAgain={() => router.push("/home" as any)}
+              onRateProduct={openReviewModal}
+              statusConfig={STATUS_CONFIG}
+            />
+          ))}
         </ScrollView>
       )}
 
-      {/* ─── Review Modal ─── */}
-      <Modal visible={showReviewModal} transparent animationType="slide" onRequestClose={() => setShowReviewModal(false)}>
-        <View style={s.modalOverlay}>
-          <View style={s.modalSheet}>
-            <View style={s.modalHandle} />
-
-            <View style={s.modalHeader}>
-              <Text style={s.modalTitle}>Rate Your Purchase</Text>
-              <TouchableOpacity onPress={() => setShowReviewModal(false)} style={s.modalClose}>
-                <X size={20} color={THEME.colors.textSecondary} />
-              </TouchableOpacity>
-            </View>
-
-            {/* Product being reviewed */}
-            <View style={s.reviewProductRow}>
-              <Image
-                source={{ uri: getProductImage(reviewProductName) }}
-                style={s.reviewProductImg}
-                defaultSource={require("../../assets/images/icon.png")}
-              />
-              <View style={{ flex: 1 }}>
-                <Text style={s.reviewProductName} numberOfLines={2}>{reviewProductName}</Text>
-                <Text style={s.reviewProductHint}>Share your experience</Text>
-              </View>
-            </View>
-
-            {/* Stars */}
-            <Text style={s.ratingPrompt}>How would you rate this product?</Text>
-            <View style={s.starsRow}>
-              {[1, 2, 3, 4, 5].map(n => (
-                <TouchableOpacity key={n} onPress={() => setReviewRating(n)} activeOpacity={0.7} style={s.starBtn}>
-                  <Star
-                    size={42}
-                    color={n <= reviewRating ? "#FBBF24" : "#E2E8F0"}
-                    fill={n <= reviewRating ? "#FBBF24" : "transparent"}
-                    strokeWidth={1.5}
-                  />
-                </TouchableOpacity>
-              ))}
-            </View>
-            {reviewRating > 0 && (
-              <Text style={s.ratingLabel}>{STAR_LABELS[reviewRating]}</Text>
-            )}
-
-            {/* Comment */}
-            <TextInput
-              style={s.commentInput}
-              placeholder="Write your review here (optional)..."
-              placeholderTextColor={THEME.colors.textMuted}
-              multiline
-              numberOfLines={3}
-              textAlignVertical="top"
-              value={reviewComment}
-              onChangeText={setReviewComment}
-            />
-
-            <TouchableOpacity
-              style={[s.submitBtn, reviewRating === 0 && s.submitBtnDisabled]}
-              onPress={handleReviewSubmit}
-              disabled={isSubmittingReview || reviewRating === 0}
-              activeOpacity={0.9}
-            >
-              {isSubmittingReview ? (
-                <ActivityIndicator size="small" color="#FFF" />
-              ) : (
-                <>
-                  <Send size={16} color="#FFF" style={{ marginRight: 8 }} />
-                  <Text style={s.submitBtnText}>Submit Review</Text>
-                </>
-              )}
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
+      <ReviewModal
+        visible={showReviewModal}
+        onClose={() => setShowReviewModal(false)}
+        productName={reviewProductName}
+        rating={reviewRating}
+        setRating={setReviewRating}
+        comment={reviewComment}
+        setComment={setReviewComment}
+        onSubmit={handleReviewSubmit}
+        isSubmitting={isSubmittingReview}
+      />
     </SafeAreaView>
   );
 }
