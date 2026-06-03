@@ -9,9 +9,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Platform } from "react-native";
 
 // Default Base URL read from environment variables or hardcoded local server
-const BASE_URL =
-  process.env.EXPO_PUBLIC_API_URL ||
-  (Platform.OS === "android" ? "http://10.0.2.2:8000/api" : "http://localhost:8000/api");
+const BASE_URL = process.env.EXPO_PUBLIC_API_URL || "http://192.168.18.235:8000/api";
 
 type RequestOptions = Omit<RequestInit, "body"> & {
   body?: any;
