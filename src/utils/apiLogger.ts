@@ -1,16 +1,22 @@
-/**
+ /**
  * API Request & Response Logger with Whitelist and Blacklist filtering.
  */
 
-// Blacklisted endpoints (sensitive paths or high-frequency polling where logging is skipped or credentials are redacted)
+// Blacklisted endpoints (sensitive paths or repetitive requests where logging is skipped)
 const DEFAULT_BLACKLIST = [
   "/login",
   "/register",
+  "/categories",
+  "/products",
+  "/orders",
 ];
 
-// Whitelisted endpoints (if not empty, ONLY endpoints matching these patterns will be logged)
-// Keep empty to log all requests except blacklisted ones.
-const DEFAULT_WHITELIST: string[] = [];
+// Whitelisted endpoints (only endpoints matching these patterns will be logged if not in blacklist)
+const DEFAULT_WHITELIST = [
+  "/cart",
+  "/addresses",
+  "/profile",
+];
 
 export class ApiLogger {
   private blacklist: string[];
