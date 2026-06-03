@@ -9,13 +9,17 @@ import {
   Platform,
   ScrollView,
   ActivityIndicator,
+  Image,
 } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { Stack, useRouter } from "expo-router";
 import { useAuth } from "../context/AuthContext";
 import { apiClient } from "../utils/api";
 import { THEME } from "../constants/theme";
+import { IMAGES } from "../constants/images";
 import { API_ENDPOINTS } from "../constants/endpoints";
+import { LinearGradient } from "expo-linear-gradient";
+import { User, Mail, ShieldCheck, Lock, Sparkles, CheckCircle2, Eye, EyeOff } from "lucide-react-native";
 
 export default function RegisterScreen() {
   const router = useRouter();
@@ -30,6 +34,17 @@ export default function RegisterScreen() {
   const [age, setAge] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+
+  // Visibility states
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
+  // Input Focus states
+  const [nameFocused, setNameFocused] = useState(false);
+  const [emailFocused, setEmailFocused] = useState(false);
+  const [ageFocused, setAgeFocused] = useState(false);
+  const [passwordFocused, setPasswordFocused] = useState(false);
+  const [confirmPasswordFocused, setConfirmPasswordFocused] = useState(false);
 
   // Validation error states
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
@@ -125,9 +140,25 @@ export default function RegisterScreen() {
       <Stack.Screen options={{ headerShown: false }} />
       <StatusBar style="dark" />
       <ScrollView contentContainerStyle={styles.scrollContainer} keyboardShouldPersistTaps="handled">
+        {/* Top Header Section with White Background & Logo */}
+        <LinearGradient
+          colors={["#b4aae9ff", "#cecbdcff"]}
+          style={styles.headerBackground}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+        >
+          <View style={styles.brandContainer}>
+            <Image
+              source={IMAGES.logo}
+              style={styles.brandLogo}
+              resizeMode="contain"
+            />
+          </View>
+        </LinearGradient>
+
         <View style={styles.card}>
           <Text style={styles.title}>Create Account</Text>
-          <Text style={styles.subtitle}>Register a new profile with CartVue</Text>
+          <Text style={styles.subtitle}>Register a new profile to unlock exclusive member privileges</Text>
 
           {globalError && (
             <View style={styles.errorBanner}>
@@ -135,79 +166,211 @@ export default function RegisterScreen() {
             </View>
           )}
 
+          {/* Full Name Input */}
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Full Name</Text>
-            <TextInput
-              style={[styles.input, errors.name && styles.inputError]}
-              placeholder="John Doe"
-              placeholderTextColor={THEME.colors.textMuted}
-              value={name}
-              onChangeText={setName}
-              autoCapitalize="words"
-            />
+            <View
+              style={[
+                styles.inputWrapper,
+                nameFocused && styles.inputWrapperFocused,
+                errors.name && styles.inputWrapperError,
+              ]}
+            >
+              <User
+                size={20}
+                color={
+                  errors.name
+                    ? THEME.colors.error
+                    : nameFocused
+                    ? THEME.colors.primary
+                    : THEME.colors.textMuted
+                }
+                style={styles.inputIcon}
+              />
+              <TextInput
+                style={styles.input}
+                placeholder="John Doe"
+                placeholderTextColor={THEME.colors.textMuted}
+                value={name}
+                onChangeText={setName}
+                autoCapitalize="words"
+                onFocus={() => setNameFocused(true)}
+                onBlur={() => setNameFocused(false)}
+              />
+            </View>
             {errors.name && <Text style={styles.errorText}>{errors.name}</Text>}
           </View>
 
+          {/* Email Input */}
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Email Address</Text>
-            <TextInput
-              style={[styles.input, errors.email && styles.inputError]}
-              placeholder="johndoe@example.com"
-              placeholderTextColor={THEME.colors.textMuted}
-              value={email}
-              onChangeText={setEmail}
-              keyboardType="email-address"
-              autoCapitalize="none"
-              autoCorrect={false}
-            />
+            <View
+              style={[
+                styles.inputWrapper,
+                emailFocused && styles.inputWrapperFocused,
+                errors.email && styles.inputWrapperError,
+              ]}
+            >
+              <Mail
+                size={20}
+                color={
+                  errors.email
+                    ? THEME.colors.error
+                    : emailFocused
+                    ? THEME.colors.primary
+                    : THEME.colors.textMuted
+                }
+                style={styles.inputIcon}
+              />
+              <TextInput
+                style={styles.input}
+                placeholder="johndoe@example.com"
+                placeholderTextColor={THEME.colors.textMuted}
+                value={email}
+                onChangeText={setEmail}
+                keyboardType="email-address"
+                autoCapitalize="none"
+                autoCorrect={false}
+                onFocus={() => setEmailFocused(true)}
+                onBlur={() => setEmailFocused(false)}
+              />
+            </View>
             {errors.email && <Text style={styles.errorText}>{errors.email}</Text>}
           </View>
 
+          {/* Age Input */}
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Age</Text>
-            <TextInput
-              style={[styles.input, errors.age && styles.inputError]}
-              placeholder="25"
-              placeholderTextColor={THEME.colors.textMuted}
-              value={age}
-              onChangeText={setAge}
-              keyboardType="number-pad"
-            />
+            <View
+              style={[
+                styles.inputWrapper,
+                ageFocused && styles.inputWrapperFocused,
+                errors.age && styles.inputWrapperError,
+              ]}
+            >
+              <ShieldCheck
+                size={20}
+                color={
+                  errors.age
+                    ? THEME.colors.error
+                    : ageFocused
+                    ? THEME.colors.primary
+                    : THEME.colors.textMuted
+                }
+                style={styles.inputIcon}
+              />
+              <TextInput
+                style={styles.input}
+                placeholder="25"
+                placeholderTextColor={THEME.colors.textMuted}
+                value={age}
+                onChangeText={setAge}
+                keyboardType="number-pad"
+                onFocus={() => setAgeFocused(true)}
+                onBlur={() => setAgeFocused(false)}
+              />
+            </View>
             {errors.age && <Text style={styles.errorText}>{errors.age}</Text>}
           </View>
 
+          {/* Password Input */}
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Password</Text>
-            <TextInput
-              style={[styles.input, errors.password && styles.inputError]}
-              placeholder="••••••••"
-              placeholderTextColor={THEME.colors.textMuted}
-              value={password}
-              onChangeText={setPassword}
-              secureTextEntry
-              autoCapitalize="none"
-            />
+            <View
+              style={[
+                styles.inputWrapper,
+                passwordFocused && styles.inputWrapperFocused,
+                errors.password && styles.inputWrapperError,
+              ]}
+            >
+              <Lock
+                size={20}
+                color={
+                  errors.password
+                    ? THEME.colors.error
+                    : passwordFocused
+                    ? THEME.colors.primary
+                    : THEME.colors.textMuted
+                }
+                style={styles.inputIcon}
+              />
+              <TextInput
+                style={styles.input}
+                placeholder="••••••••"
+                placeholderTextColor={THEME.colors.textMuted}
+                value={password}
+                onChangeText={setPassword}
+                secureTextEntry={!showPassword}
+                autoCapitalize="none"
+                onFocus={() => setPasswordFocused(true)}
+                onBlur={() => setPasswordFocused(false)}
+              />
+              <TouchableOpacity
+                onPress={() => setShowPassword(!showPassword)}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              >
+                {showPassword ? (
+                  <EyeOff size={20} color={THEME.colors.textMuted} />
+                ) : (
+                  <Eye size={20} color={THEME.colors.textMuted} />
+                )}
+              </TouchableOpacity>
+            </View>
             {errors.password && <Text style={styles.errorText}>{errors.password}</Text>}
           </View>
 
+          {/* Confirm Password Input */}
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Confirm Password</Text>
-            <TextInput
-              style={[styles.input, errors.confirmPassword && styles.inputError]}
-              placeholder="••••••••"
-              placeholderTextColor={THEME.colors.textMuted}
-              value={confirmPassword}
-              onChangeText={setConfirmPassword}
-              secureTextEntry
-              autoCapitalize="none"
-            />
+            <View
+              style={[
+                styles.inputWrapper,
+                confirmPasswordFocused && styles.inputWrapperFocused,
+                errors.confirmPassword && styles.inputWrapperError,
+              ]}
+            >
+              <Lock
+                size={20}
+                color={
+                  errors.confirmPassword
+                    ? THEME.colors.error
+                    : confirmPasswordFocused
+                    ? THEME.colors.primary
+                    : THEME.colors.textMuted
+                }
+                style={styles.inputIcon}
+              />
+              <TextInput
+                style={styles.input}
+                placeholder="••••••••"
+                placeholderTextColor={THEME.colors.textMuted}
+                value={confirmPassword}
+                onChangeText={setConfirmPassword}
+                secureTextEntry={!showConfirmPassword}
+                autoCapitalize="none"
+                onFocus={() => setConfirmPasswordFocused(true)}
+                onBlur={() => setConfirmPasswordFocused(false)}
+              />
+              <TouchableOpacity
+                onPress={() => setShowConfirmPassword(!showConfirmPassword)}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              >
+                {showConfirmPassword ? (
+                  <EyeOff size={20} color={THEME.colors.textMuted} />
+                ) : (
+                  <Eye size={20} color={THEME.colors.textMuted} />
+                )}
+              </TouchableOpacity>
+            </View>
             {errors.confirmPassword && <Text style={styles.errorText}>{errors.confirmPassword}</Text>}
           </View>
 
+          {/* Register CTA Button */}
           <TouchableOpacity
             style={styles.submitButton}
             onPress={handleRegister}
             disabled={isLoading}
+            activeOpacity={0.9}
           >
             {isLoading ? (
               <ActivityIndicator color={THEME.colors.textLight} size="small" />
@@ -216,6 +379,23 @@ export default function RegisterScreen() {
             )}
           </TouchableOpacity>
 
+          {/* Tata Neu inspired Loyalty benefits card */}
+          <View style={styles.plusContainer}>
+            <View style={styles.plusHeader}>
+              <Sparkles size={16} color={THEME.colors.secondary} />
+              <Text style={styles.plusTitle}>Instant CartVue Plus Membership</Text>
+            </View>
+            <View style={styles.benefitRow}>
+              <CheckCircle2 size={14} color={THEME.colors.success} style={styles.benefitIcon} />
+              <Text style={styles.benefitText}>Earn & Redeem rewards across all catalogs</Text>
+            </View>
+            <View style={styles.benefitRow}>
+              <CheckCircle2 size={14} color={THEME.colors.success} style={styles.benefitIcon} />
+              <Text style={styles.benefitText}>Exclusive member offers & early sale access</Text>
+            </View>
+          </View>
+
+          {/* Footer Navigation */}
           <View style={styles.footer}>
             <Text style={styles.footerText}>Already have an account? </Text>
             <TouchableOpacity onPress={() => router.push("/login" as any)}>
@@ -231,35 +411,51 @@ export default function RegisterScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: THEME.colors.background,
+    backgroundColor: "#F5F3FF",
   },
   scrollContainer: {
     flexGrow: 1,
+  },
+  headerBackground: {
+    paddingTop: Platform.OS === "ios" ? 70 : 60,
+    paddingBottom: 40,
+    borderBottomLeftRadius: 32,
+    borderBottomRightRadius: 32,
+    alignItems: "center",
     justifyContent: "center",
-    padding: THEME.spacing.xxl,
+  },
+  brandContainer: {
+    alignItems: "center",
+  },
+  brandLogo: {
+    width: 220,
+    height: 220,
   },
   card: {
     backgroundColor: THEME.colors.cardBackground,
-    borderRadius: THEME.borderRadius.xl,
-    padding: THEME.spacing.xxl,
-    shadowColor: THEME.colors.textPrimary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.05,
-    shadowRadius: 12,
-    elevation: 3,
+    borderRadius: 24,
+    marginHorizontal: THEME.spacing.lg,
+    marginTop: -20,
+    marginBottom: THEME.spacing.xxxl,
+    padding: THEME.spacing.xl,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.08,
+    shadowRadius: 20,
+    elevation: 5,
   },
   title: {
-    fontSize: 26,
+    fontSize: 22,
     fontWeight: "800",
     color: THEME.colors.textPrimary,
     textAlign: "center",
-    marginBottom: 6,
+    marginBottom: 4,
   },
   subtitle: {
-    fontSize: 14,
+    fontSize: 13,
     color: THEME.colors.textSecondary,
     textAlign: "center",
-    marginBottom: THEME.spacing.xxxl,
+    marginBottom: THEME.spacing.xl,
   },
   errorBanner: {
     backgroundColor: THEME.colors.errorBg,
@@ -267,58 +463,112 @@ const styles = StyleSheet.create({
     borderColor: THEME.colors.errorBorder,
     borderRadius: THEME.borderRadius.md,
     padding: THEME.spacing.md,
-    marginBottom: THEME.spacing.xl,
+    marginBottom: THEME.spacing.lg,
   },
   errorBannerText: {
     color: THEME.colors.error,
-    fontSize: 14,
+    fontSize: 13,
     textAlign: "center",
     fontWeight: "500",
   },
   inputGroup: {
-    marginBottom: THEME.spacing.lg,
+    marginBottom: THEME.spacing.md,
   },
   label: {
-    fontSize: 13,
-    fontWeight: "600",
+    fontSize: 12,
+    fontWeight: "700",
     color: THEME.colors.textPrimary,
     marginBottom: 6,
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+  },
+  inputWrapper: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderWidth: 1.5,
+    borderColor: THEME.colors.border,
+    borderRadius: 12,
+    backgroundColor: THEME.colors.inputBg,
+    paddingHorizontal: THEME.spacing.md,
+  },
+  inputWrapperFocused: {
+    borderColor: THEME.colors.primary,
+    backgroundColor: "#FFFFFF",
+  },
+  inputWrapperError: {
+    borderColor: THEME.colors.error,
+  },
+  inputIcon: {
+    marginRight: THEME.spacing.sm,
   },
   input: {
-    borderWidth: 1,
-    borderColor: THEME.colors.border,
-    borderRadius: THEME.borderRadius.md,
-    paddingHorizontal: THEME.spacing.lg,
-    paddingVertical: THEME.spacing.md,
+    flex: 1,
+    paddingVertical: Platform.OS === "ios" ? 14 : 10,
     fontSize: 15,
     color: THEME.colors.textPrimary,
-    backgroundColor: THEME.colors.inputBg,
-  },
-  inputError: {
-    borderColor: THEME.colors.error,
   },
   errorText: {
     color: THEME.colors.error,
-    fontSize: 12,
+    fontSize: 11,
     marginTop: 4,
+    fontWeight: "500",
   },
   submitButton: {
     backgroundColor: THEME.colors.primary,
-    borderRadius: THEME.borderRadius.md,
+    borderRadius: 12,
     paddingVertical: 14,
     alignItems: "center",
     justifyContent: "center",
+    shadowColor: THEME.colors.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 3,
+    marginBottom: THEME.spacing.lg,
     marginTop: THEME.spacing.sm,
   },
   submitButtonText: {
     color: THEME.colors.textLight,
     fontSize: 16,
-    fontWeight: "600",
+    fontWeight: "700",
+    letterSpacing: 0.5,
+  },
+  plusContainer: {
+    backgroundColor: "#FAF5FF",
+    borderWidth: 1,
+    borderColor: "#E9D5FF",
+    borderRadius: 16,
+    padding: THEME.spacing.md,
+    marginBottom: THEME.spacing.lg,
+  },
+  plusHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    marginBottom: THEME.spacing.sm,
+  },
+  plusTitle: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#5B21B6",
+  },
+  benefitRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 4,
+  },
+  benefitIcon: {
+    marginRight: 6,
+  },
+  benefitText: {
+    fontSize: 11,
+    color: "#6B21A8",
+    fontWeight: "500",
   },
   footer: {
     flexDirection: "row",
     justifyContent: "center",
-    marginTop: THEME.spacing.xxl,
+    marginTop: THEME.spacing.md,
   },
   footerText: {
     fontSize: 14,
@@ -326,7 +576,7 @@ const styles = StyleSheet.create({
   },
   footerLink: {
     fontSize: 14,
-    fontWeight: "600",
+    fontWeight: "700",
     color: THEME.colors.primary,
   },
 });
