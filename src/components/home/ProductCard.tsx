@@ -1,6 +1,6 @@
 import React from "react";
 import { StyleSheet, View, Text, TouchableOpacity, Image, ActivityIndicator, Dimensions } from "react-native";
-import { Plus } from "lucide-react-native";
+import { Plus, Heart } from "lucide-react-native";
 import { THEME } from "../../constants/theme";
 
 const { width } = Dimensions.get("window");
@@ -20,8 +20,10 @@ type ProductCardProps = {
   product: Product;
   index: number;
   isAddingToCart: boolean;
+  isFavorited?: boolean;
   onPress: (product: Product) => void;
   onAddToCart: (productId: number) => void;
+  onToggleFavorite?: (productId: number) => void;
 };
 
 // Dynamic helper to match product names/categories to high-quality accurate images
@@ -97,8 +99,10 @@ export const getProductImage = (name: string, categoryName = "") => {
 export const ProductCard: React.FC<ProductCardProps> = ({
   product,
   isAddingToCart,
+  isFavorited = false,
   onPress,
   onAddToCart,
+  onToggleFavorite,
 }) => {
   const isOutOfStock = product.stock === 0;
   const imageUrl = getProductImage(product.name, product.category?.name);
@@ -146,6 +150,24 @@ export const ProductCard: React.FC<ProductCardProps> = ({
           <View style={styles.shippingBadge}>
             <Text style={styles.shippingText}>Free Shipping</Text>
           </View>
+        )}
+
+        {/* Favorite Heart Button */}
+        {onToggleFavorite && !isOutOfStock && (
+          <TouchableOpacity
+            style={styles.favBadge}
+            onPress={(e) => {
+              e.stopPropagation(); // Prevent opening detail modal when clicking heart
+              onToggleFavorite(product.id);
+            }}
+            activeOpacity={0.8}
+          >
+            <Heart
+              size={12}
+              color={isFavorited ? "#EF4444" : "#64748B"}
+              fill={isFavorited ? "#EF4444" : "transparent"}
+            />
+          </TouchableOpacity>
         )}
       </View>
 
@@ -330,5 +352,21 @@ const styles = StyleSheet.create({
     height: 22,
     justifyContent: "center",
     alignItems: "center",
+  },
+  favBadge: {
+    position: "absolute",
+    bottom: 6,
+    right: 6,
+    backgroundColor: "rgba(255, 255, 255, 0.95)",
+    borderRadius: 12,
+    width: 24,
+    height: 24,
+    justifyContent: "center",
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 2,
   },
 });

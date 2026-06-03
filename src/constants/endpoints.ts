@@ -14,6 +14,7 @@ export const API_ENDPOINTS = {
   ORDERS: "/orders",
   ADDRESSES: "/addresses",
   PROFILE: "/profile",
+  FAVORITES: "/favorites",
 };
 
 

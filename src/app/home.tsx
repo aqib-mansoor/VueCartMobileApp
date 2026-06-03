@@ -37,6 +37,7 @@ export default function HomeScreen() {
     products,
     categories,
     selectedCategoryId,
+    favoritedProductIds,
     page,
     lastPage,
     isProductsLoading,
@@ -50,6 +51,7 @@ export default function HomeScreen() {
     setSelectedProduct,
     handleSelectCategory,
     handleAddToCart,
+    handleToggleFavorite,
     handleLoadMore,
     handleLogout,
   } = useHomeData();
@@ -98,6 +100,7 @@ export default function HomeScreen() {
         onCartPress={() => router.push("/cart" as any)}
         onOrdersPress={() => router.push("/orders" as any)}
         onProfilePress={() => router.push("/profile" as any)}
+        onFavoritesPress={() => router.push("/favorites" as any)}
       />
 
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
@@ -184,8 +187,10 @@ export default function HomeScreen() {
                   product={product}
                   index={idx}
                   isAddingToCart={isAddingToCart === product.id}
+                  isFavorited={favoritedProductIds.has(product.id)}
                   onPress={setSelectedProduct}
                   onAddToCart={handleAddToCart}
+                  onToggleFavorite={handleToggleFavorite}
                 />
               ))}
             </View>
@@ -212,6 +217,8 @@ export default function HomeScreen() {
         product={selectedProduct}
         onClose={() => setSelectedProduct(null)}
         onAddToCart={handleAddToCart}
+        isFavorited={selectedProduct ? favoritedProductIds.has(selectedProduct.id) : false}
+        onToggleFavorite={handleToggleFavorite}
       />
     </SafeAreaView>
   );

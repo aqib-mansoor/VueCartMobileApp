@@ -1,6 +1,6 @@
 import React from "react";
 import { StyleSheet, View, Text, TouchableOpacity } from "react-native";
-import { ShoppingCart, LogOut, Crown, ClipboardList } from "lucide-react-native";
+import { ShoppingCart, LogOut, Crown, ClipboardList, Heart } from "lucide-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
 import { THEME } from "../../constants/theme";
@@ -11,6 +11,7 @@ type WelcomeHeaderProps = {
   onCartPress: () => void;
   onOrdersPress: () => void;
   onProfilePress: () => void;
+  onFavoritesPress: () => void;
 };
 
 export const WelcomeHeader: React.FC<WelcomeHeaderProps> = ({
@@ -19,6 +20,7 @@ export const WelcomeHeader: React.FC<WelcomeHeaderProps> = ({
   onCartPress,
   onOrdersPress,
   onProfilePress,
+  onFavoritesPress,
 }) => {
   const insets = useSafeAreaInsets();
 
@@ -63,6 +65,9 @@ export const WelcomeHeader: React.FC<WelcomeHeaderProps> = ({
 
         {/* Actions Row */}
         <View style={styles.headerActions}>
+          <TouchableOpacity style={styles.glassButton} onPress={onFavoritesPress} activeOpacity={0.7}>
+            <Heart size={16} color="#FFFFFF" />
+          </TouchableOpacity>
           <TouchableOpacity style={styles.glassButton} onPress={onOrdersPress} activeOpacity={0.7}>
             <ClipboardList size={17} color="#FFFFFF" />
           </TouchableOpacity>

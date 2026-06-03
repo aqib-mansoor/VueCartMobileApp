@@ -31,6 +31,9 @@ export const useHomeData = () => {
   const [categories, setCategories] = useState<Category[]>([]);
   const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(null);
 
+  // Favorites States
+  const [favoritedProductIds, setFavoritedProductIds] = useState<Set<number>>(new Set());
+
   // Pagination & Loading States
   const [page, setPage] = useState(1);
   const [lastPage, setLastPage] = useState(1);
@@ -54,6 +57,7 @@ export const useHomeData = () => {
     fetchProducts(1, true);
     if (authToken) {
       fetchCartCount();
+      fetchFavorites();
     }
   }, [authToken]);
 
@@ -160,6 +164,21 @@ export const useHomeData = () => {
     }
   };
 
+  // Fetch Favorites list
+  const fetchFavorites = async () => {
+    try {
+      const res = await apiClient.get(API_ENDPOINTS.FAVORITES);
+      if (res.ok) {
+        const data = await res.json();
+        const favList = data.favorites || data.data || [];
+        const ids = new Set<number>(favList.map((fav: any) => Number(fav.product_id)));
+        setFavoritedProductIds(ids);
+      }
+    } catch (err) {
+      console.error("Error fetching favorites:", err);
+    }
+  };
+
   // Handle Category Filter Selection
   const handleSelectCategory = (categoryId: number | null) => {
     setSelectedCategoryId(categoryId);
@@ -216,6 +235,52 @@ export const useHomeData = () => {
     }
   };
 
+  // Handle Favorite Toggle
+  const handleToggleFavorite = async (productId: number) => {
+    if (!authToken) {
+      showToast({ message: "Please log in to manage favorites", type: "warning" });
+      setTimeout(() => router.push("/login" as any), 1200);
+      return;
+    }
+
+    const isFav = favoritedProductIds.has(productId);
+    const updated = new Set(favoritedProductIds);
+
+    if (isFav) {
+      updated.delete(productId);
+      setFavoritedProductIds(updated);
+      try {
+        const res = await apiClient.delete(`${API_ENDPOINTS.FAVORITES}/${productId}`);
+        if (res.ok) {
+          showToast({ message: "Removed from favorites", type: "info" });
+        } else {
+          updated.add(productId);
+          setFavoritedProductIds(updated);
+          showToast({ message: "Failed to remove from favorites", type: "error" });
+        }
+      } catch {
+        updated.add(productId);
+        setFavoritedProductIds(updated);
+      }
+    } else {
+      updated.add(productId);
+      setFavoritedProductIds(updated);
+      try {
+        const res = await apiClient.post(API_ENDPOINTS.FAVORITES, { product_id: productId });
+        if (res.ok) {
+          showToast({ message: "Added to favorites! ❤️", type: "success" });
+        } else {
+          updated.delete(productId);
+          setFavoritedProductIds(updated);
+          showToast({ message: "Failed to add to favorites", type: "error" });
+        }
+      } catch {
+        updated.delete(productId);
+        setFavoritedProductIds(updated);
+      }
+    }
+  };
+
   // Load More Products handler
   const handleLoadMore = () => {
     if (page < lastPage && !isProductsLoading && !selectedCategoryId && !isSearching) {
@@ -234,6 +299,7 @@ export const useHomeData = () => {
     products,
     categories,
     selectedCategoryId,
+    favoritedProductIds,
     page,
     lastPage,
     isProductsLoading,
@@ -247,6 +313,7 @@ export const useHomeData = () => {
     setSelectedProduct,
     handleSelectCategory,
     handleAddToCart,
+    handleToggleFavorite,
     handleLoadMore,
     handleLogout,
   };

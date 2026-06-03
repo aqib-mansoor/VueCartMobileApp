@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { StyleSheet, View, Text, TouchableOpacity, ScrollView, Image, ActivityIndicator } from "react-native";
-import { X, ShoppingCart, Sparkles, Star } from "lucide-react-native";
+import { X, ShoppingCart, Sparkles, Star, Heart } from "lucide-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { THEME } from "../../constants/theme";
 import { getProductImage } from "./ProductCard";
@@ -33,12 +33,16 @@ type ProductDetailModalProps = {
   product: Product | null;
   onClose: () => void;
   onAddToCart: (productId: number) => void;
+  isFavorited?: boolean;
+  onToggleFavorite?: (productId: number) => void;
 };
 
 export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
   product,
   onClose,
   onAddToCart,
+  isFavorited = false,
+  onToggleFavorite,
 }) => {
   const insets = useSafeAreaInsets();
   const [reviews, setReviews] = useState<Review[]>([]);
@@ -209,17 +213,32 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
         {/* Footer / Add to Cart CTA */}
         {product.stock > 0 && (
           <View style={styles.modalFooter}>
-            <TouchableOpacity
-              style={styles.modalAddButton}
-              onPress={() => {
-                onAddToCart(product.id);
-                onClose();
-              }}
-              activeOpacity={0.9}
-            >
-              <ShoppingCart size={18} color={THEME.colors.textLight} style={{ marginRight: 8 }} />
-              <Text style={styles.modalAddButtonText}>Add to Shopping Cart</Text>
-            </TouchableOpacity>
+            <View style={styles.footerRow}>
+              {onToggleFavorite && (
+                <TouchableOpacity
+                  style={[styles.modalFavButton, isFavorited && styles.modalFavButtonActive]}
+                  onPress={() => onToggleFavorite(product.id)}
+                  activeOpacity={0.8}
+                >
+                  <Heart
+                    size={20}
+                    color={isFavorited ? "#EF4444" : "#64748B"}
+                    fill={isFavorited ? "#EF4444" : "transparent"}
+                  />
+                </TouchableOpacity>
+              )}
+              <TouchableOpacity
+                style={styles.modalAddButton}
+                onPress={() => {
+                  onAddToCart(product.id);
+                  onClose();
+                }}
+                activeOpacity={0.9}
+              >
+                <ShoppingCart size={18} color={THEME.colors.textLight} style={{ marginRight: 8 }} />
+                <Text style={styles.modalAddButtonText}>Add to Shopping Cart</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         )}
       </View>
@@ -479,6 +498,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#FFFFFF",
   },
   modalAddButton: {
+    flex: 1,
     backgroundColor: THEME.colors.primary,
     borderRadius: 14,
     paddingVertical: 16,
@@ -490,5 +510,25 @@ const styles = StyleSheet.create({
     color: "#FFFFFF",
     fontSize: 15,
     fontWeight: "700",
+  },
+  footerRow: {
+    flexDirection: "row",
+    gap: 12,
+    alignItems: "center",
+    width: "100%",
+  },
+  modalFavButton: {
+    width: 52,
+    height: 52,
+    borderRadius: 14,
+    backgroundColor: "#F1F5F9",
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 1.5,
+    borderColor: "#E2E8F0",
+  },
+  modalFavButtonActive: {
+    backgroundColor: "#FEE2E2",
+    borderColor: "#FCA5A5",
   },
 });
