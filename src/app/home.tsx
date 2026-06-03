@@ -1,88 +1,215 @@
 import React from "react";
-import { StyleSheet, View, Text, TouchableOpacity } from "react-native";
-import { Stack, useRouter } from "expo-router";
-import { useAuth } from "../context/AuthContext";
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  ScrollView,
+  FlatList,
+  ActivityIndicator,
+} from "react-native";
+import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { Search, SlidersHorizontal, ShoppingBag, RefreshCw, X } from "lucide-react-native";
 import { THEME } from "../constants/theme";
 
-export default function HomeScreen() {
-  const { user, logout } = useAuth();
-  const router = useRouter();
+// Import custom hook and styles
+import { useHomeData } from "../hooks/useHomeData";
+import { styles } from "../styles/homeStyles";
 
-  const handleLogout = async () => {
-    await logout();
-    router.replace("/login" as any);
+// Import custom modular components
+import { WelcomeHeader } from "../components/WelcomeHeader";
+import { AutoPromoSlider } from "../components/AutoPromoSlider";
+import { ProductCard } from "../components/ProductCard";
+import { ProductDetailModal } from "../components/ProductDetailModal";
+
+type Category = {
+  id: number;
+  name: string;
+  description?: string;
+};
+
+export default function HomeScreen() {
+  const {
+    user,
+    products,
+    categories,
+    selectedCategoryId,
+    page,
+    lastPage,
+    isProductsLoading,
+    isCategoriesLoading,
+    isAddingToCart,
+    searchQuery,
+    setSearchQuery,
+    isSearching,
+    cartCount,
+    selectedProduct,
+    setSelectedProduct,
+    handleSelectCategory,
+    handleAddToCart,
+    handleLoadMore,
+    handleLogout,
+  } = useHomeData();
+
+  // Render Category Item Pill
+  const renderCategoryItem = ({ item }: { item: Category | null }) => {
+    const isSelected = item === null ? selectedCategoryId === null : selectedCategoryId === item.id;
+    const label = item === null ? "All Products" : item.name;
+
+    return (
+      <TouchableOpacity
+        style={[styles.categoryPill, isSelected && styles.categoryPillSelected]}
+        onPress={() => handleSelectCategory(item ? item.id : null)}
+        activeOpacity={0.8}
+      >
+        <Text style={[styles.categoryPillText, isSelected && styles.categoryPillTextSelected]}>
+          {label}
+        </Text>
+      </TouchableOpacity>
+    );
   };
 
-  return (
-    <View style={styles.container}>
-      <Stack.Screen options={{ title: "Catalog", headerLeft: () => null }} />
-      <StatusBar style="dark" />
-      <View style={styles.content}>
-        <Text style={styles.title}>CartVue Catalog</Text>
-        <Text style={styles.welcomeText}>
-          Welcome, {user?.name || user?.email || "Guest"}!
-        </Text>
-        <Text style={styles.subtitle}>You have successfully authenticated.</Text>
-        
-        <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-          <Text style={styles.logoutButtonText}>Log Out</Text>
-        </TouchableOpacity>
-      </View>
+  // Shimmer / Skeleton UI loading state
+  const renderSkeletonGrid = () => (
+    <View style={styles.gridContainer}>
+      {[1, 2, 3, 4].map((i) => (
+        <View key={i} style={[styles.skeletonCard, { height: i % 2 === 0 ? 250 : 220 }]}>
+          <View style={styles.skeletonImage} />
+          <View style={styles.skeletonLine} />
+          <View style={[styles.skeletonLine, { width: "60%" }]} />
+          <View style={[styles.skeletonLine, { width: "40%", height: 16 }]} />
+        </View>
+      ))}
     </View>
   );
-}
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: THEME.colors.background,
-    justifyContent: "center",
-    alignItems: "center",
-    padding: THEME.spacing.xxl,
-  },
-  content: {
-    width: "100%",
-    maxWidth: 400,
-    backgroundColor: THEME.colors.cardBackground,
-    padding: THEME.spacing.xxxl,
-    borderRadius: THEME.borderRadius.xl,
-    alignItems: "center",
-    shadowColor: THEME.colors.textPrimary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.05,
-    shadowRadius: 12,
-    elevation: 3,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: "800",
-    color: THEME.colors.textPrimary,
-    marginBottom: 8,
-  },
-  welcomeText: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: THEME.colors.primary,
-    marginBottom: 4,
-  },
-  subtitle: {
-    fontSize: 14,
-    color: THEME.colors.textSecondary,
-    textAlign: "center",
-    marginBottom: THEME.spacing.xxxl,
-  },
-  logoutButton: {
-    backgroundColor: THEME.colors.error,
-    paddingVertical: 12,
-    paddingHorizontal: 24,
-    borderRadius: THEME.borderRadius.md,
-    width: "100%",
-    alignItems: "center",
-  },
-  logoutButtonText: {
-    color: THEME.colors.textLight,
-    fontSize: 15,
-    fontWeight: "600",
-  },
-});
+  return (
+    <SafeAreaView style={styles.container} edges={["top", "bottom"]}>
+      <Stack.Screen options={{ headerShown: false }} />
+      <StatusBar style="dark" />
+
+      {/* Sticky Custom Welcome Header Component */}
+      <WelcomeHeader
+        userName={user?.name}
+        cartCount={cartCount}
+        onLogout={handleLogout}
+        onCartPress={() => {}}
+      />
+
+      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        {/* Search Bar & Filters */}
+        <View style={styles.searchSection}>
+          <View style={styles.searchInputContainer}>
+            <Search size={18} color={THEME.colors.textMuted} style={styles.searchIcon} />
+            <TextInput
+              style={styles.searchInput}
+              placeholder="Search products, brands, categories..."
+              placeholderTextColor={THEME.colors.textMuted}
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+            />
+            {searchQuery.length > 0 && (
+              <TouchableOpacity onPress={() => setSearchQuery("")} style={styles.clearSearchButton}>
+                <X size={16} color={THEME.colors.textSecondary} />
+              </TouchableOpacity>
+            )}
+          </View>
+          <TouchableOpacity style={styles.filterButton} activeOpacity={0.8}>
+            <SlidersHorizontal size={20} color={THEME.colors.primary} />
+          </TouchableOpacity>
+        </View>
+
+        {/* Automatic Sliding Promotions Carousel */}
+        <AutoPromoSlider />
+
+        {/* Categories Strip */}
+        <View style={styles.categoriesContainer}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Shop by Categories</Text>
+            {isCategoriesLoading && <ActivityIndicator size="small" color={THEME.colors.primary} />}
+          </View>
+          
+          <FlatList
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            data={[null, ...categories]}
+            renderItem={renderCategoryItem}
+            keyExtractor={(item, index) => (item ? item.id.toString() : "all")}
+            contentContainerStyle={styles.categoryList}
+          />
+        </View>
+
+        {/* Products Grid Section */}
+        <View style={styles.productsSection}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>
+              {isSearching ? "Search Results" : selectedCategoryId ? "Category Spotlight" : "Explore Collections"}
+            </Text>
+            {isSearching && (
+              <TouchableOpacity onPress={() => setSearchQuery("")} style={styles.resetButton}>
+                <Text style={styles.resetButtonText}>Reset Search</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+
+          {isProductsLoading && products.length === 0 ? (
+            renderSkeletonGrid()
+          ) : products.length === 0 ? (
+            <View style={styles.emptyStateContainer}>
+              <ShoppingBag size={48} color={THEME.colors.textMuted} />
+              <Text style={styles.emptyStateTitle}>No Products Found</Text>
+              <Text style={styles.emptyStateText}>
+                We couldn't find any products matching your query. Adjust your filters or browse standard collections.
+              </Text>
+              <TouchableOpacity
+                style={styles.emptyStateButton}
+                onPress={() => {
+                  setSearchQuery("");
+                  handleSelectCategory(null);
+                }}
+              >
+                <Text style={styles.emptyStateButtonText}>Show All Products</Text>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <View style={styles.gridContainer}>
+              {products.map((product, idx) => (
+                <ProductCard
+                  key={product.id}
+                  product={product}
+                  index={idx}
+                  isAddingToCart={isAddingToCart === product.id}
+                  onPress={setSelectedProduct}
+                  onAddToCart={handleAddToCart}
+                />
+              ))}
+            </View>
+          )}
+
+          {/* Load More Pagination Trigger */}
+          {page < lastPage && !isProductsLoading && !selectedCategoryId && !isSearching && (
+            <TouchableOpacity style={styles.loadMoreButton} onPress={handleLoadMore} activeOpacity={0.8}>
+              <RefreshCw size={16} color={THEME.colors.primary} style={styles.loadMoreIcon} />
+              <Text style={styles.loadMoreText}>Explore More Collections</Text>
+            </TouchableOpacity>
+          )}
+
+          {isProductsLoading && products.length > 0 && (
+            <View style={styles.loadingMoreIndicator}>
+              <ActivityIndicator size="small" color={THEME.colors.primary} />
+            </View>
+          )}
+        </View>
+      </ScrollView>
+
+      {/* Slide-Up Product Detail Sheet Modal */}
+      <ProductDetailModal
+        product={selectedProduct}
+        onClose={() => setSelectedProduct(null)}
+        onAddToCart={handleAddToCart}
+      />
+    </SafeAreaView>
+  );
+}

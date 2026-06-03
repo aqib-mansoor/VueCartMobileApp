@@ -20,6 +20,7 @@ import { IMAGES } from "../constants/images";
 import { API_ENDPOINTS } from "../constants/endpoints";
 import { LinearGradient } from "expo-linear-gradient";
 import { User, Mail, ShieldCheck, Lock, Sparkles, CheckCircle2, Eye, EyeOff } from "lucide-react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function RegisterScreen() {
   const router = useRouter();
@@ -133,10 +134,11 @@ export default function RegisterScreen() {
   };
 
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
-      style={styles.container}
-    >
+    <SafeAreaView style={styles.container} edges={["top", "bottom"]}>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        style={{ flex: 1 }}
+      >
       <Stack.Screen options={{ headerShown: false }} />
       <StatusBar style="dark" />
       <ScrollView contentContainerStyle={styles.scrollContainer} keyboardShouldPersistTaps="handled">
@@ -405,6 +407,7 @@ export default function RegisterScreen() {
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }
 

@@ -6,4 +6,8 @@
 export const API_ENDPOINTS = {
   LOGIN: "/login",
   REGISTER: "/register",
+  CATEGORIES: "/categories",
+  PRODUCTS: "/products",
+  SEARCH_PRODUCTS: "/products/search",
+  CART: "/cart",
 };
