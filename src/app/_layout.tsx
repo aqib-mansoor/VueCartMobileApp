@@ -18,8 +18,8 @@ function RootLayoutNavigation() {
         router.replace("/home" as any);
       }
     } else {
-      // If not logged in and trying to access home, redirect to login
-      if (segments[0] === "home") {
+      // If not logged in and trying to access home or cart, redirect to login
+      if (segments[0] === "home" || segments[0] === "cart") {
         router.replace("/login" as any);
       }
     }

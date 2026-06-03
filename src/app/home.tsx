@@ -8,7 +8,7 @@ import {
   FlatList,
   ActivityIndicator,
 } from "react-native";
-import { Stack } from "expo-router";
+import { Stack, useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Search, SlidersHorizontal, ShoppingBag, RefreshCw, X } from "lucide-react-native";
@@ -31,6 +31,7 @@ type Category = {
 };
 
 export default function HomeScreen() {
+  const router = useRouter();
   const {
     user,
     products,
@@ -95,7 +96,7 @@ export default function HomeScreen() {
         userName={user?.name}
         cartCount={cartCount}
         onLogout={handleLogout}
-        onCartPress={() => {}}
+        onCartPress={() => router.push("/cart" as any)}
       />
 
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
