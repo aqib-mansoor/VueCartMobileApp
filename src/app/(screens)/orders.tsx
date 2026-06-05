@@ -83,10 +83,10 @@ export default function OrdersScreen() {
   useEffect(() => {
     dispatch(fetchOrders(reduxOrders.length === 0));
 
-    // Silently poll in the background every 5 seconds for admin updates
+    // Silently poll in the background every 30 seconds for admin status updates
     const interval = setInterval(() => {
       dispatch(fetchOrders(false));
-    }, 5000);
+    }, 30000);
 
     return () => clearInterval(interval);
   }, [dispatch, reduxOrders.length]);

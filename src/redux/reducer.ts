@@ -105,6 +105,15 @@ function cartReducer(state = initialCartState, action: any): CartState {
         ...state,
         isAddingToCartId: action.payload,
       };
+    // Instantly bump the cart count before API responds — real sync happens after
+    case types.OPTIMISTIC_ADD_TO_CART:
+      return {
+        ...state,
+        meta: {
+          ...state.meta,
+          total_items: state.meta.total_items + action.payload,
+        },
+      };
     default:
       return state;
   }

@@ -8,7 +8,7 @@ import {
   FlatList,
   ActivityIndicator,
 } from "react-native";
-import { Stack, useRouter } from "expo-router";
+import { Stack, useRouter, useFocusEffect } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Search, SlidersHorizontal, ShoppingBag, RefreshCw, X } from "lucide-react-native";
@@ -55,7 +55,14 @@ export default function HomeScreen() {
     handleToggleFavorite,
     handleLoadMore,
     handleLogout,
+    fetchProducts,
   } = useHomeData();
+
+  useFocusEffect(
+    React.useCallback(() => {
+      fetchProducts(1, true);
+    }, [])
+  );
 
   // Render Category Item Pill
   const renderCategoryItem = ({ item }: { item: Category | null }) => {

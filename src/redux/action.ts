@@ -100,14 +100,26 @@ export const fetchCart = (showLoading = true) => async (dispatch: any) => {
   }
 };
 
-export const addToCart = (productId: number, quantity: number) => async (dispatch: any) => {
+export const addToCart = (productId: number, quantity: number) => async (dispatch: any, getState: any) => {
+  // Prevent double-tap: if already adding this exact product, ignore
+  const { cart } = getState();
+  if (cart.isAddingToCartId === productId) return;
+
   dispatch(setAddingToCartId(productId));
+  // Optimistic update — instantly reflect +quantity in cart badge
+  dispatch({ type: types.OPTIMISTIC_ADD_TO_CART, payload: quantity });
+
   try {
     const res = await apiClient.post(API_ENDPOINTS.CART, { product_id: productId, quantity });
     const data = await res.json();
     if (!res.ok) throw new Error(data.message || "Failed to add to cart");
+    // Sync real cart state from server (will overwrite the optimistic update)
     await dispatch(fetchCart(false));
     return data;
+  } catch (err) {
+    // Revert optimistic update on failure
+    dispatch({ type: types.OPTIMISTIC_ADD_TO_CART, payload: -quantity });
+    throw err;
   } finally {
     dispatch(setAddingToCartId(null));
   }

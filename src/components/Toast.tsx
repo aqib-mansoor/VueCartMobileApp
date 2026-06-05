@@ -20,11 +20,11 @@ const ToastContext = createContext<ToastContextType>({ showToast: () => {} });
 
 export const useToast = () => useContext(ToastContext);
 
-const TOAST_COLORS: Record<ToastType, { accent: string; iconBg: string; bg: string }> = {
-  success: { accent: "#10B981", iconBg: "#E6F4EA", bg: "#F3FBF7" },
-  error: { accent: "#EF4444", iconBg: "#FCE8E6", bg: "#FEF3F2" },
-  warning: { accent: "#F59E0B", iconBg: "#FEF3D6", bg: "#FFFDF0" },
-  info: { accent: "#3B82F6", iconBg: "#E8F0FE", bg: "#F4F8FF" },
+const TOAST_COLORS: Record<ToastType, { accent: string; iconBg: string; bg: string; text: string }> = {
+  success: { accent: "#10B981", iconBg: "#E6F4EA", bg: "#F0FDF4", text: "#15803D" },
+  error: { accent: "#EF4444", iconBg: "#FCE8E6", bg: "#FEF2F2", text: "#B91C1C" },
+  warning: { accent: "#F59E0B", iconBg: "#FEF3D6", bg: "#FFFBEB", text: "#B45309" },
+  info: { accent: "#3B82F6", iconBg: "#E8F0FE", bg: "#EFF6FF", text: "#1D4ED8" },
 };
 
 const TOAST_ICONS: Record<ToastType, any> = {
@@ -36,7 +36,7 @@ const TOAST_ICONS: Record<ToastType, any> = {
 
 export function ToastProvider({ children }: { children: React.ReactNode }) {
   const [toast, setToast] = useState<ToastConfig | null>(null);
-  const translateY = useRef(new Animated.Value(-100)).current;
+  const translateY = useRef(new Animated.Value(100)).current;
   const scale = useRef(new Animated.Value(0.9)).current;
   const opacity = useRef(new Animated.Value(0)).current;
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -44,7 +44,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   const dismissToast = useCallback(() => {
     if (timerRef.current) clearTimeout(timerRef.current);
     Animated.parallel([
-      Animated.timing(translateY, { toValue: -100, duration: 250, useNativeDriver: true }),
+      Animated.timing(translateY, { toValue: 100, duration: 250, useNativeDriver: true }),
       Animated.timing(scale, { toValue: 0.9, duration: 250, useNativeDriver: true }),
       Animated.timing(opacity, { toValue: 0, duration: 200, useNativeDriver: true }),
     ]).start(() => setToast(null));
@@ -54,7 +54,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
     if (timerRef.current) clearTimeout(timerRef.current);
     setToast(config);
 
-    translateY.setValue(-50);
+    translateY.setValue(50);
     scale.setValue(0.9);
     opacity.setValue(0);
 
@@ -96,12 +96,12 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
               <Icon size={14} color={colors.accent} strokeWidth={3} />
             </View>
             <View style={styles.textContainer}>
-              <Text style={styles.toastMessage} numberOfLines={2}>
+              <Text style={[styles.toastMessage, { color: colors.text }]} numberOfLines={2}>
                 {toast.message}
               </Text>
             </View>
             <View style={styles.closeBtn}>
-              <X size={12} color="#94A3B8" strokeWidth={2.5} />
+              <X size={12} color={colors.accent} strokeWidth={2.5} />
             </View>
           </Animated.View>
         </TouchableOpacity>
@@ -113,10 +113,8 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
 const styles = StyleSheet.create({
   touchableWrapper: {
     position: "absolute",
-    top: 56,
-    left: 0,
-    right: 0,
-    alignItems: "center",
+    bottom: 90,
+    right: 16,
     zIndex: 9999,
   },
   toastContainer: {
@@ -127,7 +125,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     borderRadius: 24,
     gap: 10,
-    maxWidth: width - 64,
+    maxWidth: width - 32,
     elevation: 12,
     shadowColor: "#0F172A",
     shadowOffset: { width: 0, height: 6 },
@@ -145,7 +143,6 @@ const styles = StyleSheet.create({
     flexShrink: 1,
   },
   toastMessage: {
-    color: "#1E293B",
     fontSize: 12.5,
     fontWeight: "700",
     lineHeight: 17,

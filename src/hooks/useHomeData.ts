@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { apiClient } from "../utils/api";
 import { API_ENDPOINTS } from "../constants/endpoints";
@@ -36,7 +36,7 @@ export const useHomeData = () => {
   // Redux Selectors
   const { user, authToken } = useAppSelector((state) => state.auth);
   const favoritedIdsArray = useAppSelector((state) => state.favorites.favoritedIds);
-  const favoritedProductIds = new Set<number>(favoritedIdsArray);
+  const favoritedProductIds = useMemo(() => new Set<number>(favoritedIdsArray), [favoritedIdsArray]);
   const cartCount = useAppSelector((state) => state.cart.meta.total_items);
   const isAddingToCart = useAppSelector((state) => state.cart.isAddingToCartId);
 
@@ -79,7 +79,6 @@ export const useHomeData = () => {
   // Initial Data Loading
   useEffect(() => {
     fetchCategories();
-    fetchProducts(1, true);
     if (authToken) {
       dispatch(fetchCart(false));
       dispatch(fetchFavorites(false));
@@ -210,20 +209,21 @@ export const useHomeData = () => {
     }
   };
 
-  // Handle Add to Cart
-  const handleAddToCart = async (productId: number) => {
+  // Handle Add to Cart — optimistic: show toast immediately, API syncs in background
+  const handleAddToCart = (productId: number) => {
     if (!authToken) {
       showToast({ message: "Please log in to add items to cart", type: "warning" });
       setTimeout(() => router.push(ROUTES.LOGIN as any), 1200);
       return;
     }
 
-    try {
-      await dispatch(addToCart(productId, 1));
-      showToast({ message: "Added to cart! 🎉", type: "success" });
-    } catch (err: any) {
-      showToast({ message: err || "Failed to add to cart", type: "error" });
-    }
+    // Show success toast immediately — optimistic update already bumped cart count
+    showToast({ message: "Added to cart! 🎉", type: "success" });
+
+    dispatch(addToCart(productId, 1)).catch((err: any) => {
+      // If the actual API call fails, show an error toast
+      showToast({ message: err?.message || "Failed to add to cart", type: "error" });
+    });
   };
 
   // Handle Favorite Toggle
@@ -281,5 +281,6 @@ export const useHomeData = () => {
     handleToggleFavorite,
     handleLoadMore,
     handleLogout,
+    fetchProducts,
   };
 };
