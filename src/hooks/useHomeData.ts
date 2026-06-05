@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "expo-router";
 import { apiClient } from "../utils/api";
 import { API_ENDPOINTS } from "../constants/endpoints";
+import { ROUTES } from "../constants/routes";
 import { useToast } from "../components/Toast";
 import { useAppDispatch, useAppSelector } from "../redux/store";
 import { fetchCart, addToCart, fetchFavorites, toggleFavorite, logout as logoutAction } from "../redux/action";
@@ -190,7 +191,7 @@ export const useHomeData = () => {
   const handleAddToCart = async (productId: number) => {
     if (!authToken) {
       showToast({ message: "Please log in to add items to cart", type: "warning" });
-      setTimeout(() => router.push("/login" as any), 1200);
+      setTimeout(() => router.push(ROUTES.LOGIN as any), 1200);
       return;
     }
 
@@ -206,7 +207,7 @@ export const useHomeData = () => {
   const handleToggleFavorite = async (productId: number) => {
     if (!authToken) {
       showToast({ message: "Please log in to manage favorites", type: "warning" });
-      setTimeout(() => router.push("/login" as any), 1200);
+      setTimeout(() => router.push(ROUTES.LOGIN as any), 1200);
       return;
     }
 
@@ -231,7 +232,7 @@ export const useHomeData = () => {
 
   const handleLogout = async () => {
     await dispatch(logoutAction());
-    router.replace("/login" as any);
+    router.replace(ROUTES.LOGIN as any);
   };
 
   return {

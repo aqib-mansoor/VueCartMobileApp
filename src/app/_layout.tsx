@@ -5,6 +5,7 @@ import { ConfirmProvider } from "../components/ConfirmDialog";
 import { Provider } from "react-redux";
 import { store, useAppDispatch, useAppSelector } from "../redux/store";
 import { loadAuth } from "../redux/action";
+import { ROUTES } from "../constants/routes";
 
 function RootLayoutNavigation() {
   const dispatch = useAppDispatch();
@@ -24,13 +25,13 @@ function RootLayoutNavigation() {
     if (authToken) {
       // If logged in, redirect away from auth screens to catalog home
       if (inAuthGroup || !segments[0]) {
-        router.replace("/home" as any);
+        router.replace(ROUTES.HOME as any);
       }
     } else {
       // If not logged in and trying to access protected screens, redirect to login
       const isProtected = ["home", "cart", "checkout", "orders", "profile"].includes(segments[0] || "");
       if (isProtected) {
-        router.replace("/login" as any);
+        router.replace(ROUTES.LOGIN as any);
       }
     }
   }, [authToken, isLoading, segments, router]);

@@ -37,6 +37,7 @@ import { MenuItem } from "../../components/profile/MenuItem";
 import { useConfirm } from "../../components/ConfirmDialog";
 import { useAppDispatch, useAppSelector } from "../../redux/store";
 import { login as loginAction, logout as logoutAction, fetchFavorites } from "../../redux/action";
+import { ROUTES } from "../../constants/routes";
 
 type Address = {
   id: number;
@@ -186,7 +187,7 @@ export default function ProfileScreen() {
       type: "danger",
       onConfirm: async () => {
         await dispatch(logoutAction());
-        router.replace("/login" as any);
+        router.replace(ROUTES.LOGIN as any);
       },
     });
   };
@@ -197,13 +198,13 @@ export default function ProfileScreen() {
       icon: <ClipboardList size={20} color={THEME.colors.primary} />,
       label: "Order History",
       subtitle: "View your past orders",
-      onPress: () => router.push("/orders" as any),
+      onPress: () => router.push(ROUTES.ORDERS as any),
     },
     {
       icon: <ShoppingCart size={20} color={THEME.colors.secondary} />,
       label: "My Cart",
       subtitle: "View items in your cart",
-      onPress: () => router.push("/cart" as any),
+      onPress: () => router.push(ROUTES.CART as any),
     },
     {
       icon: <Settings size={20} color="#64748B" />,
@@ -476,7 +477,7 @@ export default function ProfileScreen() {
               <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
                 <Text style={styles.sectionCount}>{favorites.length}</Text>
                 {favorites.length > 0 && (
-                  <TouchableOpacity onPress={() => router.push("/favorites" as any)}>
+                  <TouchableOpacity onPress={() => router.push(ROUTES.FAVORITES as any)}>
                     <Text style={{ fontSize: 12, fontWeight: "700", color: THEME.colors.primary }}>See More</Text>
                   </TouchableOpacity>
                 )}
@@ -506,7 +507,7 @@ export default function ProfileScreen() {
                 ))}
                 <TouchableOpacity
                   style={[styles.favItemCard, { justifyContent: "center", alignItems: "center", minHeight: 120 }]}
-                  onPress={() => router.push("/favorites" as any)}
+                  onPress={() => router.push(ROUTES.FAVORITES as any)}
                 >
                   <ArrowRight size={24} color={THEME.colors.primary} />
                   <Text style={{ fontSize: 11, fontWeight: "800", color: THEME.colors.primary, marginTop: 4 }}>See More</Text>

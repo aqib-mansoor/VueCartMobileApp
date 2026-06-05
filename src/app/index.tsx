@@ -3,6 +3,7 @@ import { StyleSheet, View, Image, Animated } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { Stack, useRouter } from "expo-router";
 import { IMAGES } from "../constants/images";
+import { ROUTES } from "../constants/routes";
 
 export default function SplashScreen() {
   const router = useRouter();
@@ -25,7 +26,7 @@ export default function SplashScreen() {
 
     // Redirect to the auth screen after 3 seconds
     const timer = setTimeout(() => {
-      router.replace("/login" as any);
+      router.replace(ROUTES.LOGIN as any);
     }, 3000);
 
     return () => clearTimeout(timer);
