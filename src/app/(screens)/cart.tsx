@@ -21,6 +21,7 @@ import { CartItemRow } from "../../components/cart/CartItemRow";
 import { useConfirm } from "../../components/ConfirmDialog";
 import { useAppDispatch, useAppSelector } from "../../redux/store";
 import { fetchCart, updateCartQuantity, removeFromCart, clearCart } from "../../redux/action";
+import { ROUTES } from "../../constants/routes";
 
 type CartItem = {
   cart_item_id: number;
@@ -141,7 +142,7 @@ export default function CartScreen() {
           <View style={s.emptyIcon}><ShoppingBag size={52} color={THEME.colors.primary} /></View>
           <Text style={s.emptyTitle}>Your cart is empty</Text>
           <Text style={s.emptySub}>Looks like you haven't added anything to your cart yet</Text>
-          <TouchableOpacity style={s.shopBtn} onPress={() => router.replace("/home" as any)} activeOpacity={0.9}>
+          <TouchableOpacity style={s.shopBtn} onPress={() => router.replace(ROUTES.HOME as any)} activeOpacity={0.9}>
             <Text style={s.shopBtnText}>Start Shopping</Text>
             <ArrowRight size={16} color="#FFF" style={{ marginLeft: 6 }} />
           </TouchableOpacity>
@@ -234,7 +235,7 @@ export default function CartScreen() {
               <Text style={s.footerTotal}>${finalTotal.toFixed(2)}</Text>
               <Text style={s.footerSaved}>You save ${discount.toFixed(2)}</Text>
             </View>
-            <TouchableOpacity style={s.checkoutBtn} onPress={() => router.push("/checkout" as any)} activeOpacity={0.9}>
+            <TouchableOpacity style={s.checkoutBtn} onPress={() => router.push(ROUTES.CHECKOUT as any)} activeOpacity={0.9}>
               <Text style={s.checkoutText}>Place Order</Text>
               <ArrowRight size={16} color="#FFF" style={{ marginLeft: 6 }} />
             </TouchableOpacity>

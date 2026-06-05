@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
-import { StyleSheet, View, Text, TouchableOpacity, ScrollView, Image, ActivityIndicator } from "react-native";
-import { X, ShoppingCart, Sparkles, Star, Heart } from "lucide-react-native";
+import { StyleSheet, View, Text, TouchableOpacity, ScrollView, Image, ActivityIndicator, Modal } from "react-native";
+import { X, ShoppingCart, Sparkles, Star, Heart, SlidersHorizontal } from "lucide-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { THEME } from "../../constants/theme";
 import { getProductImage } from "./ProductCard";
@@ -45,6 +45,9 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
   onToggleFavorite,
 }) => {
   const insets = useSafeAreaInsets();
+  const [showAllReviewsModal, setShowAllReviewsModal] = useState(false);
+  const [sortBy, setSortBy] = useState<"latest" | "highest" | "lowest">("latest");
+  const [ratingFilter, setRatingFilter] = useState<number | null>(null);
   const [reviews, setReviews] = useState<Review[]>([]);
   const [isReviewsLoading, setIsReviewsLoading] = useState(false);
 
@@ -67,6 +70,21 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
     } finally {
       setIsReviewsLoading(false);
     }
+  };
+
+  const getSortedFilteredReviews = () => {
+    let list = [...reviews];
+    if (ratingFilter !== null) {
+      list = list.filter((r) => r.rating === ratingFilter);
+    }
+    if (sortBy === "latest") {
+      list.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+    } else if (sortBy === "highest") {
+      list.sort((a, b) => b.rating - a.rating);
+    } else if (sortBy === "lowest") {
+      list.sort((a, b) => a.rating - b.rating);
+    }
+    return list;
   };
 
   if (!product) return null;
@@ -174,7 +192,7 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
               <Text style={styles.noReviewsText}>No reviews yet. Be the first to review this product!</Text>
             ) : (
               <View style={styles.reviewsList}>
-                {reviews.map((rev) => (
+                {reviews.slice(0, 2).map((rev) => (
                   <View key={rev.id} style={styles.reviewItem}>
                     <View style={styles.reviewHeader}>
                       <View style={styles.reviewUserAvatar}>
@@ -200,6 +218,15 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
                   </View>
                 ))}
               </View>
+            )}
+            {reviews.length > 2 && (
+              <TouchableOpacity
+                style={styles.seeAllReviewsBtn}
+                onPress={() => setShowAllReviewsModal(true)}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.seeAllReviewsBtnText}>See All {reviews.length} Reviews</Text>
+              </TouchableOpacity>
             )}
           </View>
 
@@ -242,6 +269,94 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
           </View>
         )}
       </View>
+
+      {/* All Reviews Modal overlay */}
+      <Modal
+        visible={showAllReviewsModal}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setShowAllReviewsModal(false)}
+      >
+        <View style={styles.allReviewsModalOverlay}>
+          <View style={[styles.allReviewsModalContent, { paddingTop: insets.top + 10, paddingBottom: Math.max(insets.bottom, 16) }]}>
+            <View style={styles.allReviewsHeader}>
+              <Text style={styles.allReviewsTitle}>All Reviews ({reviews.length})</Text>
+              <TouchableOpacity onPress={() => setShowAllReviewsModal(false)} style={styles.modalCloseButton}>
+                <X size={20} color={THEME.colors.textPrimary} />
+              </TouchableOpacity>
+            </View>
+
+            {/* Filter & Sort Controls */}
+            <View style={styles.filterBar}>
+              <View style={styles.filterGroup}>
+                <Text style={styles.filterLabel}>Sort:</Text>
+                <View style={styles.filterOptions}>
+                  {(["latest", "highest", "lowest"] as const).map((mode) => (
+                    <TouchableOpacity
+                      key={mode}
+                      style={[styles.filterPill, sortBy === mode && styles.filterPillActive]}
+                      onPress={() => setSortBy(mode)}
+                    >
+                      <Text style={[styles.filterPillText, sortBy === mode && styles.filterPillTextActive]}>
+                        {mode === "latest" ? "Latest" : mode === "highest" ? "High Rating" : "Low Rating"}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
+
+              <View style={[styles.filterGroup, { marginTop: 8 }]}>
+                <Text style={styles.filterLabel}>Stars:</Text>
+                <View style={styles.filterOptions}>
+                  {([null, 5, 4, 3, 2, 1] as const).map((stars) => (
+                    <TouchableOpacity
+                      key={String(stars)}
+                      style={[styles.filterPill, ratingFilter === stars && styles.filterPillActive]}
+                      onPress={() => setRatingFilter(stars)}
+                    >
+                      <Text style={[styles.filterPillText, ratingFilter === stars && styles.filterPillTextActive]}>
+                        {stars === null ? "All" : `${stars} ★`}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
+            </View>
+
+            <ScrollView contentContainerStyle={styles.allReviewsList} showsVerticalScrollIndicator={false}>
+              {getSortedFilteredReviews().length === 0 ? (
+                <Text style={[styles.noReviewsText, { textAlign: "center", marginTop: 24 }]}>No matching reviews found.</Text>
+              ) : (
+                getSortedFilteredReviews().map((rev) => (
+                  <View key={rev.id} style={styles.reviewItem}>
+                    <View style={styles.reviewHeader}>
+                      <View style={styles.reviewUserAvatar}>
+                        <Text style={styles.reviewUserAvatarText}>
+                          {rev.user?.name ? rev.user.name[0].toUpperCase() : "U"}
+                        </Text>
+                      </View>
+                      <View style={styles.reviewUserInfo}>
+                        <Text style={styles.reviewUserName}>{rev.user?.name || "Customer"}</Text>
+                        <View style={styles.reviewStarsRow}>
+                          {[1, 2, 3, 4, 5].map((star) => (
+                            <Text key={star} style={{ fontSize: 10, color: star <= rev.rating ? "#F59E0B" : THEME.colors.textMuted }}>
+                              ★
+                            </Text>
+                          ))}
+                        </View>
+                      </View>
+                      <Text style={styles.reviewDate}>
+                        {new Date(rev.created_at).toLocaleDateString()}
+                      </Text>
+                    </View>
+                    <Text style={styles.reviewComment}>{rev.comment}</Text>
+                  </View>
+                ))
+              )}
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 };
@@ -530,5 +645,91 @@ const styles = StyleSheet.create({
   modalFavButtonActive: {
     backgroundColor: "#FEE2E2",
     borderColor: "#FCA5A5",
+  },
+  seeAllReviewsBtn: {
+    backgroundColor: "#F1F5F9",
+    borderWidth: 1.5,
+    borderColor: "#E2E8F0",
+    borderRadius: 12,
+    paddingVertical: 10,
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 8,
+  },
+  seeAllReviewsBtnText: {
+    fontSize: 12,
+    fontWeight: "800",
+    color: THEME.colors.primary,
+  },
+  allReviewsModalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.6)",
+    justifyContent: "flex-end",
+  },
+  allReviewsModalContent: {
+    backgroundColor: "#FFFFFF",
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    height: "90%",
+    paddingHorizontal: THEME.spacing.lg,
+  },
+  allReviewsHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingVertical: THEME.spacing.md,
+    borderBottomWidth: 1,
+    borderColor: "#EEF2F6",
+  },
+  allReviewsTitle: {
+    fontSize: 16,
+    fontWeight: "900",
+    color: THEME.colors.textPrimary,
+  },
+  filterBar: {
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderColor: "#EEF2F6",
+  },
+  filterGroup: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  filterLabel: {
+    fontSize: 11,
+    fontWeight: "800",
+    color: THEME.colors.textSecondary,
+    width: 42,
+  },
+  filterOptions: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 6,
+    flex: 1,
+  },
+  filterPill: {
+    backgroundColor: "#F1F5F9",
+    borderRadius: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+  },
+  filterPillActive: {
+    backgroundColor: THEME.colors.primary,
+    borderColor: THEME.colors.primary,
+  },
+  filterPillText: {
+    fontSize: 10,
+    fontWeight: "700",
+    color: THEME.colors.textSecondary,
+  },
+  filterPillTextActive: {
+    color: "#FFFFFF",
+  },
+  allReviewsList: {
+    paddingVertical: THEME.spacing.md,
+    gap: THEME.spacing.md,
+    paddingBottom: 40,
   },
 });

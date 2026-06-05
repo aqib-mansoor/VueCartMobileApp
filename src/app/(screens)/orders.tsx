@@ -270,7 +270,7 @@ export default function OrdersScreen() {
             {searchQuery ? "Try different search terms" : "Your orders will show up here once you place one"}
           </Text>
           {!searchQuery && (
-            <TouchableOpacity style={s.shopNowBtn} onPress={() => router.push("/home" as any)}>
+            <TouchableOpacity style={s.shopNowBtn} onPress={() => router.push(ROUTES.HOME as any)}>
               <ShoppingBag size={15} color="#FFF" style={{ marginRight: 6 }} />
               <Text style={s.shopNowText}>Shop Now</Text>
             </TouchableOpacity>
@@ -285,7 +285,7 @@ export default function OrdersScreen() {
               isExpanded={expandedOrders.has(order.id)}
               onToggleExpand={() => toggleExpand(order.id)}
               onCancelOrder={handleCancelOrder}
-              onBuyAgain={() => router.push("/home" as any)}
+              onBuyAgain={() => router.push(ROUTES.HOME as any)}
               onRateProduct={openReviewModal}
               statusConfig={STATUS_CONFIG}
             />

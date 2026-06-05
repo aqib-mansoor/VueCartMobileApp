@@ -13,6 +13,7 @@ import { StatusBar } from "expo-status-bar";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Search, SlidersHorizontal, ShoppingBag, RefreshCw, X } from "lucide-react-native";
 import { THEME } from "../../constants/theme";
+import { ROUTES } from "../../constants/routes";
 
 // Import custom hook and styles
 import { useHomeData } from "../../hooks/useHomeData";
@@ -97,10 +98,10 @@ export default function HomeScreen() {
       <WelcomeHeader
         userName={user?.name}
         cartCount={cartCount}
-        onCartPress={() => router.push("/cart" as any)}
-        onOrdersPress={() => router.push("/orders" as any)}
-        onProfilePress={() => router.push("/profile" as any)}
-        onFavoritesPress={() => router.push("/favorites" as any)}
+        onCartPress={() => router.push(ROUTES.CART as any)}
+        onOrdersPress={() => router.push(ROUTES.ORDERS as any)}
+        onProfilePress={() => router.push(ROUTES.PROFILE as any)}
+        onFavoritesPress={() => router.push(ROUTES.FAVORITES as any)}
       />
 
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>

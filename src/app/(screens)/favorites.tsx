@@ -17,6 +17,7 @@ import { ProductDetailModal } from "../../components/home/ProductDetailModal";
 import { useToast } from "../../components/Toast";
 import { useAppDispatch, useAppSelector } from "../../redux/store";
 import { fetchFavorites, toggleFavorite, addToCart } from "../../redux/action";
+import { ROUTES } from "../../constants/routes";
 
 type Product = {
   id: number;
@@ -97,7 +98,7 @@ export default function FavoritesScreen() {
           </Text>
           <TouchableOpacity
             style={styles.exploreButton}
-            onPress={() => router.push("/home" as any)}
+            onPress={() => router.push(ROUTES.HOME as any)}
             activeOpacity={0.8}
           >
             <ShoppingBag size={18} color="#FFFFFF" style={{ marginRight: 8 }} />

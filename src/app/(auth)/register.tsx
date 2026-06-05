@@ -22,6 +22,7 @@ import { User, Mail, ShieldCheck, Lock, Sparkles, CheckCircle2, Eye, EyeOff } fr
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useAppDispatch } from "../../redux/store";
 import { login as loginAction } from "../../redux/action";
+import { ROUTES } from "../../constants/routes";
 
 export default function RegisterScreen() {
   const router = useRouter();
@@ -114,7 +115,7 @@ export default function RegisterScreen() {
         await dispatch(loginAction(data.access_token, data.user));
         setPassword("");
         setConfirmPassword("");
-        router.replace("/home" as any);
+        router.replace(ROUTES.HOME as any);
       } else {
         if (response.status === 422) {
           if (data.errors) {
@@ -401,7 +402,7 @@ export default function RegisterScreen() {
           {/* Footer Navigation */}
           <View style={styles.footer}>
             <Text style={styles.footerText}>Already have an account? </Text>
-            <TouchableOpacity onPress={() => router.push("/login" as any)}>
+            <TouchableOpacity onPress={() => router.push(ROUTES.LOGIN as any)}>
               <Text style={styles.footerLink}>Log In</Text>
             </TouchableOpacity>
           </View>

@@ -22,6 +22,7 @@ import { Mail, Lock, Sparkles, CheckCircle2, Eye, EyeOff } from "lucide-react-na
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useAppDispatch } from "../../redux/store";
 import { login as loginAction } from "../../redux/action";
+import { ROUTES } from "../../constants/routes";
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -77,7 +78,7 @@ export default function LoginScreen() {
       if (response.ok) {
         await dispatch(loginAction(data.access_token, data.user));
         setPassword("");
-        router.replace("/home" as any);
+        router.replace(ROUTES.HOME as any);
       } else {
         if (response.status === 422) {
           if (data.errors) {
@@ -256,7 +257,7 @@ export default function LoginScreen() {
           {/* Footer Navigation */}
           <View style={styles.footer}>
             <Text style={styles.footerText}>{"Don't have an account? "}</Text>
-            <TouchableOpacity onPress={() => router.push("/register" as any)}>
+            <TouchableOpacity onPress={() => router.push(ROUTES.REGISTER as any)}>
               <Text style={styles.footerLink}>Sign Up</Text>
             </TouchableOpacity>
           </View>

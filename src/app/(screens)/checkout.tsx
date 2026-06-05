@@ -27,6 +27,7 @@ import { formatOrderNumber } from "../../utils/orderUtils";
 import { OrderSuccessOverlay } from "../../components/checkout/OrderSuccessOverlay";
 import { useAppDispatch, useAppSelector } from "../../redux/store";
 import { fetchCart } from "../../redux/action";
+import { ROUTES } from "../../constants/routes";
 
 type Address = { id: number; street: string; city: string; state: string; zip: string; country: string; };
 type CartItem = { cart_item_id: number; product_id: number; name: string; price: string | number; quantity: number; total_price: number; };
@@ -138,8 +139,8 @@ export default function CheckoutScreen() {
         cartItems={cartItems}
         finalTotal={finalTotal}
         deliveryDate={deliveryDate}
-        onTrackOrder={() => router.replace("/orders" as any)}
-        onContinueShopping={() => router.replace("/home" as any)}
+        onTrackOrder={() => router.replace(ROUTES.ORDERS as any)}
+        onContinueShopping={() => router.replace(ROUTES.HOME as any)}
       />
     );
   }
