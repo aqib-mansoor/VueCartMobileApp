@@ -25,6 +25,8 @@ import {
   ShoppingCart,
   Settings,
   LogOut,
+  Plus,
+  ArrowRight,
 } from "lucide-react-native";
 import { THEME } from "../../constants/theme";
 import { apiClient } from "../../utils/api";
@@ -34,7 +36,7 @@ import { useToast } from "../../components/Toast";
 import { MenuItem } from "../../components/profile/MenuItem";
 import { useConfirm } from "../../components/ConfirmDialog";
 import { useAppDispatch, useAppSelector } from "../../redux/store";
-import { login as loginAction, logout as logoutAction } from "../../redux/action";
+import { login as loginAction, logout as logoutAction, fetchFavorites } from "../../redux/action";
 
 type Address = {
   id: number;
@@ -49,6 +51,7 @@ export default function ProfileScreen() {
   const router = useRouter();
   const dispatch = useAppDispatch();
   const { authToken } = useAppSelector((state) => state.auth);
+  const favorites = useAppSelector((state) => state.favorites.items);
   const { showToast } = useToast();
   const { showConfirm } = useConfirm();
 
@@ -64,17 +67,18 @@ export default function ProfileScreen() {
 
   // Addresses
   const [addresses, setAddresses] = useState<Address[]>([]);
-
-  // Mock favourites
-  const mockFavourites = [
-    { id: 1, name: "Wireless Headphones", price: 99.99, category: "Electronics" },
-    { id: 2, name: "Protein Powder", price: 49.99, category: "Fitness" },
-    { id: 3, name: "Nike Air Max", price: 129.99, category: "Fashion" },
-  ];
+  const [showNewAddressForm, setShowNewAddressForm] = useState(false);
+  const [street, setStreet] = useState("");
+  const [city, setCity] = useState("");
+  const [state, setState] = useState("");
+  const [zip, setZip] = useState("");
+  const [country, setCountry] = useState("USA");
+  const [isSavingAddress, setIsSavingAddress] = useState(false);
 
   useEffect(() => {
     fetchProfileData();
-  }, []);
+    dispatch(fetchFavorites());
+  }, [dispatch]);
 
   const fetchProfileData = async () => {
     setIsLoading(true);
@@ -138,6 +142,36 @@ export default function ProfileScreen() {
       showToast({ message: "Network connectivity issue", type: "error" });
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const handleSaveAddress = async () => {
+    if (!street.trim() || !city.trim() || !state.trim() || !zip.trim()) {
+      showToast({ message: "Please fill in all address fields", type: "warning" });
+      return;
+    }
+    setIsSavingAddress(true);
+    try {
+      const res = await apiClient.post(API_ENDPOINTS.ADDRESSES, { street, city, state, zip, country });
+      if (res.ok) {
+        const d = await res.json();
+        const n = d.address || d.data;
+        if (n) {
+          setAddresses(p => [n, ...p]);
+        } else {
+          const n2 = d.records || d;
+          setAddresses(p => [n2, ...p]);
+        }
+        setStreet(""); setCity(""); setState(""); setZip(""); setCountry("USA");
+        setShowNewAddressForm(false);
+        showToast({ message: "Address saved successfully!", type: "success" });
+      } else {
+        showToast({ message: "Failed to save address", type: "error" });
+      }
+    } catch {
+      showToast({ message: "Failed to save address due to network error", type: "error" });
+    } finally {
+      setIsSavingAddress(false);
     }
   };
 
@@ -324,11 +358,94 @@ export default function ProfileScreen() {
                 <MapPin size={18} color={THEME.colors.primary} />
                 <Text style={styles.sectionTitle}>Saved Addresses</Text>
               </View>
-              <Text style={styles.sectionCount}>{addresses.length}</Text>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                <Text style={styles.sectionCount}>{addresses.length}</Text>
+                <TouchableOpacity
+                  onPress={() => setShowNewAddressForm(!showNewAddressForm)}
+                  style={{ backgroundColor: THEME.colors.primary, borderRadius: 6, padding: 4 }}
+                >
+                  <Plus size={14} color="#FFF" />
+                </TouchableOpacity>
+              </View>
             </View>
+
+            {showNewAddressForm && (
+              <View style={[styles.formCard, { marginHorizontal: 0, marginTop: 0, marginBottom: 12, elevation: 0, borderWidth: 1, borderColor: "#E2E8F0" }]}>
+                <Text style={styles.formSectionTitle}>Add New Address</Text>
+                
+                <View style={styles.inputContainer}>
+                  <TextInput
+                    style={[styles.input, { paddingHorizontal: 12 }]}
+                    placeholder="Street Address"
+                    placeholderTextColor={THEME.colors.textMuted}
+                    value={street}
+                    onChangeText={setStreet}
+                  />
+                </View>
+
+                <View style={{ flexDirection: "row", gap: 8 }}>
+                  <View style={[styles.inputContainer, { flex: 1 }]}>
+                    <TextInput
+                      style={[styles.input, { paddingHorizontal: 12 }]}
+                      placeholder="City"
+                      placeholderTextColor={THEME.colors.textMuted}
+                      value={city}
+                      onChangeText={setCity}
+                    />
+                  </View>
+                  <View style={[styles.inputContainer, { flex: 1 }]}>
+                    <TextInput
+                      style={[styles.input, { paddingHorizontal: 12 }]}
+                      placeholder="State"
+                      placeholderTextColor={THEME.colors.textMuted}
+                      value={state}
+                      onChangeText={setState}
+                    />
+                  </View>
+                </View>
+
+                <View style={{ flexDirection: "row", gap: 8 }}>
+                  <View style={[styles.inputContainer, { flex: 1 }]}>
+                    <TextInput
+                      style={[styles.input, { paddingHorizontal: 12 }]}
+                      placeholder="ZIP Code"
+                      placeholderTextColor={THEME.colors.textMuted}
+                      value={zip}
+                      onChangeText={setZip}
+                    />
+                  </View>
+                  <View style={[styles.inputContainer, { flex: 1 }]}>
+                    <TextInput
+                      style={[styles.input, { paddingHorizontal: 12 }]}
+                      placeholder="Country"
+                      placeholderTextColor={THEME.colors.textMuted}
+                      value={country}
+                      onChangeText={setCountry}
+                    />
+                  </View>
+                </View>
+
+                <TouchableOpacity
+                  style={[styles.saveButton, { marginTop: 4 }]}
+                  onPress={handleSaveAddress}
+                  disabled={isSavingAddress}
+                  activeOpacity={0.9}
+                >
+                  {isSavingAddress ? (
+                    <ActivityIndicator size="small" color="#FFFFFF" />
+                  ) : (
+                    <>
+                      <Save size={16} color="#FFFFFF" style={{ marginRight: 6 }} />
+                      <Text style={styles.saveButtonText}>Save Address</Text>
+                    </>
+                  )}
+                </TouchableOpacity>
+              </View>
+            )}
+
             {addresses.length === 0 ? (
               <Text style={styles.emptyBlockText}>
-                No saved addresses. Add one during checkout.
+                No saved addresses. Add one here.
               </Text>
             ) : (
               <View style={styles.addressList}>
@@ -354,26 +471,46 @@ export default function ProfileScreen() {
                 <Heart size={18} color="#EF4444" fill="#EF4444" />
                 <Text style={styles.sectionTitle}>My Favourites</Text>
               </View>
-              <Text style={styles.sectionCount}>{mockFavourites.length}</Text>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                <Text style={styles.sectionCount}>{favorites.length}</Text>
+                {favorites.length > 0 && (
+                  <TouchableOpacity onPress={() => router.push("/favorites" as any)}>
+                    <Text style={{ fontSize: 12, fontWeight: "700", color: THEME.colors.primary }}>See More</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
             </View>
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.favScrollRow}
-            >
-              {mockFavourites.map((fav) => (
-                <View key={fav.id} style={styles.favItemCard}>
-                  <Image
-                    source={{ uri: getProductImage(fav.name, fav.category) }}
-                    style={styles.favImage}
-                  />
-                  <Text style={styles.favName} numberOfLines={1}>
-                    {fav.name}
-                  </Text>
-                  <Text style={styles.favPrice}>${fav.price.toFixed(2)}</Text>
-                </View>
-              ))}
-            </ScrollView>
+            {favorites.length === 0 ? (
+              <Text style={styles.emptyBlockText}>
+                No favorites yet. Add some to your wishlist!
+              </Text>
+            ) : (
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.favScrollRow}
+              >
+                {favorites.map((fav) => (
+                  <View key={fav.id} style={styles.favItemCard}>
+                    <Image
+                      source={{ uri: getProductImage(fav.name, fav.category?.name) }}
+                      style={styles.favImage}
+                    />
+                    <Text style={styles.favName} numberOfLines={1}>
+                      {fav.name}
+                    </Text>
+                    <Text style={styles.favPrice}>${Number(fav.price).toFixed(2)}</Text>
+                  </View>
+                ))}
+                <TouchableOpacity
+                  style={[styles.favItemCard, { justifyContent: "center", alignItems: "center", minHeight: 120 }]}
+                  onPress={() => router.push("/favorites" as any)}
+                >
+                  <ArrowRight size={24} color={THEME.colors.primary} />
+                  <Text style={{ fontSize: 11, fontWeight: "800", color: THEME.colors.primary, marginTop: 4 }}>See More</Text>
+                </TouchableOpacity>
+              </ScrollView>
+            )}
           </View>
 
           {/* Logout at Bottom */}
