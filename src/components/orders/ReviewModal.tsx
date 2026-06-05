@@ -2,7 +2,6 @@ import React from "react";
 import { StyleSheet, View, Text, Modal, TextInput, TouchableOpacity, ActivityIndicator, Image } from "react-native";
 import { X, Star, Send } from "lucide-react-native";
 import { THEME } from "../../constants/theme";
-import { IMAGES } from "../../constants/images";
 import { getProductImage } from "../home/ProductCard";
 
 type ReviewModalProps = {
@@ -48,7 +47,7 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({
             <Image
               source={{ uri: getProductImage(productName) }}
               style={s.reviewProductImg}
-              defaultSource={IMAGES.placeholder}
+              defaultSource={require("../../../assets/images/icon.png")}
             />
             <View style={{ flex: 1 }}>
               <Text style={s.reviewProductName} numberOfLines={2}>{productName}</Text>

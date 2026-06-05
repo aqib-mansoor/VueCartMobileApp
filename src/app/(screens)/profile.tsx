@@ -82,7 +82,7 @@ export default function ProfileScreen() {
       const res = await apiClient.get(API_ENDPOINTS.PROFILE);
       if (res.ok) {
         const data = await res.json();
-        const profile = data.user || data.data || {};
+        const profile = data.records || data.user || data.data || {};
         setName(profile.name || "");
         setEmail(profile.email || "");
         setAge(profile.age ? String(profile.age) : "");
@@ -91,7 +91,9 @@ export default function ProfileScreen() {
       const addressRes = await apiClient.get(API_ENDPOINTS.ADDRESSES);
       if (addressRes.ok) {
         const addressData = await addressRes.json();
-        setAddresses(addressData.addresses || addressData.data || []);
+        const records = addressData.records || addressData;
+        const list = Array.isArray(records) ? records : (records.addresses || records.data || []);
+        setAddresses(list);
       }
     } catch (err) {
       console.error("Error fetching profile screen details:", err);

@@ -18,7 +18,6 @@ import {
   ChevronLeft, Plus, MapPin, Check, ArrowRight, Shield,
   Truck, CreditCard, Gift, PartyPopper, ShoppingBag, Clock, Star,
 } from "lucide-react-native";
-import { IMAGES } from "../../constants/images";
 import { THEME } from "../../constants/theme";
 import { apiClient } from "../../utils/api";
 import { API_ENDPOINTS } from "../../constants/endpoints";
@@ -260,7 +259,7 @@ export default function CheckoutScreen() {
                   <Image
                     source={{ uri: getProductImage(item.name) }}
                     style={s.orderItemImg}
-                    defaultSource={IMAGES.placeholder}
+                    defaultSource={require("../../../assets/images/icon.png")}
                   />
                   <View style={{ flex: 1 }}>
                     <Text style={s.orderItemName} numberOfLines={2}>{item.name}</Text>

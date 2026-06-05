@@ -79,7 +79,7 @@ export default function OrdersScreen() {
       const res = await apiClient.get(API_ENDPOINTS.ORDERS);
       if (res.ok) {
         const d = await res.json();
-        const list = d.orders || d.data || [];
+        const list = d.records || d.orders || d.data || [];
         setOrders(list);
         // Auto-expand first order
         if (list.length > 0) setExpandedOrders(new Set([list[0].id]));
