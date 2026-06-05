@@ -15,6 +15,9 @@ type Product = {
   stock: number;
   category_id: number;
   category?: { name: string };
+  avg_rating?: number | null;
+  reviews_count?: number;
+  sold_count?: number;
 };
 
 type Review = {
@@ -90,11 +93,11 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
 
   if (!product) return null;
 
-  // Mirror the exact dynamic values from ProductCard
-  const rating = reviews.length > 0
+  // Use real data from API — show actual numbers, 0 when none yet
+  const realAvgRating = reviews.length > 0
     ? (reviews.reduce((acc, r) => acc + r.rating, 0) / reviews.length).toFixed(1)
-    : (4.0 + ((product.id * 7) % 10) * 0.1).toFixed(1);
-  const soldCount = 50 + ((product.id * 23) % 900);
+    : (product.avg_rating != null && product.avg_rating > 0 ? Number(product.avg_rating).toFixed(1) : "0.0");
+  const soldCount = product.sold_count ?? 0;
   const discountPercent = 15 + ((product.id * 5) % 25);
   const salePrice = Number(product.price);
   const originalPrice = salePrice / (1 - discountPercent / 100);
@@ -148,11 +151,13 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
           <View style={styles.modalRatingRow}>
             <View style={styles.starsGroup}>
               <Text style={styles.starIcon}>★</Text>
-              <Text style={styles.ratingNumber}>{rating}</Text>
-              <Text style={styles.reviewsCount}>({reviews.length} reviews)</Text>
+              <Text style={styles.ratingNumber}>{realAvgRating}</Text>
+              <Text style={styles.reviewsCount}>({reviews.length} review{reviews.length !== 1 ? "s" : ""})</Text>
             </View>
             <View style={styles.dividerDot} />
-            <Text style={styles.detailSoldCount}>{soldCount}+ items sold</Text>
+            <Text style={styles.detailSoldCount}>
+              {soldCount >= 1000 ? (soldCount / 1000).toFixed(1) + "k" : soldCount}+ sold
+            </Text>
           </View>
 
           {/* Product Title */}

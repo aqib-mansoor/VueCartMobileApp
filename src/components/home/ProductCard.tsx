@@ -14,6 +14,9 @@ type Product = {
   stock: number;
   category_id: number;
   category?: { name: string };
+  avg_rating?: number | null;
+  reviews_count?: number;
+  sold_count?: number;
 };
 
 type ProductCardProps = {
@@ -107,10 +110,13 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   const isOutOfStock = product.stock === 0;
   const imageUrl = getProductImage(product.name, product.category?.name);
 
-  // Dynamic but stable values simulated for a real e-commerce feel
-  const rating = (4.0 + ((product.id * 7) % 10) * 0.1).toFixed(1);
-  const soldCount = 50 + ((product.id * 23) % 900);
-  const discountPercent = 15 + ((product.id * 5) % 25); // 15% - 40% OFF
+  // Real data from API — show actual numbers, 0 when none yet
+  const rating = product.avg_rating != null && product.avg_rating > 0
+    ? Number(product.avg_rating).toFixed(1)
+    : "0.0";
+  const soldCount = product.sold_count ?? 0;
+
+  const discountPercent = 15 + ((product.id * 5) % 25); // kept as visual decoration
   const salePrice = Number(product.price);
   const originalPrice = salePrice / (1 - discountPercent / 100);
   const hasFreeDelivery = product.id % 2 === 0;
@@ -185,7 +191,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
         {/* Rating and Sold count row (Daraz / Temu style) */}
         <View style={styles.ratingRow}>
           <Text style={styles.ratingText}>★ {rating}</Text>
-          <Text style={styles.soldText}>({soldCount} sold)</Text>
+          <Text style={styles.soldText}>({soldCount >= 1000 ? (soldCount / 1000).toFixed(1) + "k" : soldCount} sold)</Text>
         </View>
         
         {/* Price layout (Original price crossed, Sale price highlighted) */}
@@ -320,6 +326,12 @@ const styles = StyleSheet.create({
     color: "#F59E0B", // Bright gold stars
     fontSize: 10,
     fontWeight: "700",
+  },
+  newBadgeText: {
+    color: "#0EA5E9",
+    fontSize: 10,
+    fontWeight: "800",
+    letterSpacing: 0.2,
   },
   soldText: {
     color: THEME.colors.textSecondary,
