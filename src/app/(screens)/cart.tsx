@@ -136,7 +136,7 @@ export default function CartScreen() {
         ) : <View style={{ width: 60 }} />}
       </View>
 
-      {isLoading ? renderSkeletons() : cartItems.length === 0 ? (
+      {isLoading && cartItems.length === 0 ? renderSkeletons() : cartItems.length === 0 ? (
         <View style={s.emptyState}>
           <View style={s.emptyIcon}><ShoppingBag size={52} color={THEME.colors.primary} /></View>
           <Text style={s.emptyTitle}>Your cart is empty</Text>

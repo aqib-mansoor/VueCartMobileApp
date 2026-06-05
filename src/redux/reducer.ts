@@ -141,10 +141,39 @@ function favoritesReducer(state = initialFavoritesState, action: any): Favorites
   }
 }
 
+// Orders Reducer
+interface OrdersState {
+  items: any[];
+  isLoading: boolean;
+}
+
+const initialOrdersState: OrdersState = {
+  items: [],
+  isLoading: false,
+};
+
+function ordersReducer(state = initialOrdersState, action: any): OrdersState {
+  switch (action.type) {
+    case types.SET_ORDERS:
+      return {
+        ...state,
+        items: action.payload,
+      };
+    case types.SET_ORDERS_LOADING:
+      return {
+        ...state,
+        isLoading: action.payload,
+      };
+    default:
+      return state;
+  }
+}
+
 export const rootReducer = combineReducers({
   auth: authReducer,
   cart: cartReducer,
   favorites: favoritesReducer,
+  orders: ordersReducer,
 });
 
 export type RootState = ReturnType<typeof rootReducer>;

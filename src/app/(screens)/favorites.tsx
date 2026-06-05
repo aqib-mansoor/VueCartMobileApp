@@ -81,7 +81,7 @@ export default function FavoritesScreen() {
         <View style={{ width: 32 }} />
       </View>
 
-      {isLoading ? (
+      {isLoading && favorites.length === 0 ? (
         <View style={styles.centerContainer}>
           <ActivityIndicator size="large" color={THEME.colors.primary} />
           <Text style={styles.loadingText}>Fetching favorites...</Text>

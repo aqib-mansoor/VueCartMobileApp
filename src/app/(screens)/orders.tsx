@@ -20,6 +20,8 @@ import { formatOrderNumber } from "../../utils/orderUtils";
 import { OrderCard } from "../../components/orders/OrderCard";
 import { ReviewModal } from "../../components/orders/ReviewModal";
 import { useConfirm } from "../../components/ConfirmDialog";
+import { useAppDispatch, useAppSelector } from "../../redux/store";
+import { fetchOrders } from "../../redux/action";
 
 type OrderItem = {
   id: number;
@@ -53,11 +55,14 @@ const STATUS_CONFIG: Record<string, { bg: string; text: string; border: string; 
 
 export default function OrdersScreen() {
   const router = useRouter();
+  const dispatch = useAppDispatch();
   const { showToast } = useToast();
   const { showConfirm } = useConfirm();
 
-  const [orders, setOrders] = useState<Order[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const reduxOrders = useAppSelector((state) => state.orders.items);
+  const reduxLoading = useAppSelector((state) => state.orders.isLoading);
+
+  const [orders, setOrders] = useState<Order[]>(reduxOrders);
   const [activeTab, setActiveTab] = useState("All");
   const [searchQuery, setSearchQuery] = useState("");
   const [expandedOrders, setExpandedOrders] = useState<Set<number>>(new Set());
@@ -71,27 +76,16 @@ export default function OrdersScreen() {
   const [isSubmittingReview, setIsSubmittingReview] = useState(false);
   const [hoveredStar, setHoveredStar] = useState(0);
 
-  useEffect(() => { fetchOrders(); }, []);
+  useEffect(() => {
+    dispatch(fetchOrders(reduxOrders.length === 0));
+  }, [dispatch, reduxOrders.length]);
 
-  const fetchOrders = async () => {
-    setIsLoading(true);
-    try {
-      const res = await apiClient.get(API_ENDPOINTS.ORDERS);
-      if (res.ok) {
-        const d = await res.json();
-        const list = d.records || d.orders || d.data || [];
-        setOrders(list);
-        // Auto-expand first order
-        if (list.length > 0) setExpandedOrders(new Set([list[0].id]));
-      } else {
-        showToast({ message: "Failed to load orders", type: "error" });
-      }
-    } catch {
-      showToast({ message: "Network error loading orders", type: "error" });
-    } finally {
-      setIsLoading(false);
+  useEffect(() => {
+    setOrders(reduxOrders);
+    if (reduxOrders.length > 0 && expandedOrders.size === 0) {
+      setExpandedOrders(new Set([reduxOrders[0].id]));
     }
-  };
+  }, [reduxOrders]);
 
   const toggleExpand = async (orderId: number) => {
     const isExpanding = !expandedOrders.has(orderId);
@@ -253,7 +247,7 @@ export default function OrdersScreen() {
         })}
       </View>
 
-      {isLoading ? (
+      {reduxLoading && orders.length === 0 ? (
         <View style={s.loadingCont}>
           <ActivityIndicator size="large" color={THEME.colors.primary} />
           <Text style={s.loadingText}>Loading your orders...</Text>

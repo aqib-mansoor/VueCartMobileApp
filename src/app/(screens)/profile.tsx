@@ -50,19 +50,19 @@ type Address = {
 export default function ProfileScreen() {
   const router = useRouter();
   const dispatch = useAppDispatch();
-  const { authToken } = useAppSelector((state) => state.auth);
+  const { authToken, user } = useAppSelector((state) => state.auth);
   const favorites = useAppSelector((state) => state.favorites.items);
   const { showToast } = useToast();
   const { showConfirm } = useConfirm();
 
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(!user);
   const [isSaving, setIsSaving] = useState(false);
   const [showEditForm, setShowEditForm] = useState(false);
 
   // Form inputs
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [age, setAge] = useState("");
+  const [name, setName] = useState(user?.name || "");
+  const [email, setEmail] = useState(user?.email || "");
+  const [age, setAge] = useState(user?.age ? String(user?.age) : "");
   const [password, setPassword] = useState("");
 
   // Addresses
@@ -81,7 +81,9 @@ export default function ProfileScreen() {
   }, [dispatch]);
 
   const fetchProfileData = async () => {
-    setIsLoading(true);
+    if (!user) {
+      setIsLoading(true);
+    }
     try {
       const res = await apiClient.get(API_ENDPOINTS.PROFILE);
       if (res.ok) {

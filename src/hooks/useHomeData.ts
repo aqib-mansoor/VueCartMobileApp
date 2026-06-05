@@ -156,35 +156,34 @@ export const useHomeData = () => {
 
 
   // Handle Category Filter Selection
-  const handleSelectCategory = (categoryId: number | null) => {
+  const handleSelectCategory = async (categoryId: number | null) => {
     setSelectedCategoryId(categoryId);
     setSearchQuery("");
+    setProducts([]);
     setPage(1);
     setIsSearching(false);
-    
     setIsProductsLoading(true);
-    setTimeout(async () => {
-      try {
-        const endpoint = categoryId ? `${API_ENDPOINTS.CATEGORIES}/${categoryId}` : `${API_ENDPOINTS.PRODUCTS}?page=1`;
-        const res = await apiClient.get(endpoint);
-        if (res.ok) {
-          const data = await res.json();
-          const records = data.records || data || {};
-          if (categoryId) {
-            setProducts(records.products || records.data || []);
-            setLastPage(1);
-          } else {
-            setProducts(records.data || []);
-            setPage(records.current_page || 1);
-            setLastPage(records.last_page || 1);
-          }
+    
+    try {
+      const endpoint = categoryId ? `${API_ENDPOINTS.CATEGORIES}/${categoryId}` : `${API_ENDPOINTS.PRODUCTS}?page=1`;
+      const res = await apiClient.get(endpoint);
+      if (res.ok) {
+        const data = await res.json();
+        const records = data.records || data || {};
+        if (categoryId) {
+          setProducts(records.products || records.data || []);
+          setLastPage(1);
+        } else {
+          setProducts(records.data || []);
+          setPage(records.current_page || 1);
+          setLastPage(records.last_page || 1);
         }
-      } catch (err) {
-        console.error(err);
-      } finally {
-        setIsProductsLoading(false);
       }
-    }, 50);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsProductsLoading(false);
+    }
   };
 
   // Handle Add to Cart

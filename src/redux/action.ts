@@ -79,8 +79,10 @@ export const setAddingToCartId = (productId: number | null) => ({
 });
 
 // Cart Thunks
-export const fetchCart = () => async (dispatch: any) => {
-  dispatch(setCartLoading(true));
+export const fetchCart = (showLoading = true) => async (dispatch: any) => {
+  if (showLoading) {
+    dispatch(setCartLoading(true));
+  }
   try {
     const res = await apiClient.get(API_ENDPOINTS.CART);
     if (!res.ok) throw new Error("Failed to fetch cart");
@@ -92,7 +94,9 @@ export const fetchCart = () => async (dispatch: any) => {
   } catch (err) {
     console.error(err);
   } finally {
-    dispatch(setCartLoading(false));
+    if (showLoading) {
+      dispatch(setCartLoading(false));
+    }
   }
 };
 
@@ -102,7 +106,7 @@ export const addToCart = (productId: number, quantity: number) => async (dispatc
     const res = await apiClient.post(API_ENDPOINTS.CART, { product_id: productId, quantity });
     const data = await res.json();
     if (!res.ok) throw new Error(data.message || "Failed to add to cart");
-    await dispatch(fetchCart());
+    await dispatch(fetchCart(false));
     return data;
   } finally {
     dispatch(setAddingToCartId(null));
@@ -114,7 +118,7 @@ export const updateCartQuantity = (itemId: number, quantity: number) => async (d
     const res = await apiClient.put(`${API_ENDPOINTS.CART}/${itemId}`, { quantity });
     const data = await res.json();
     if (!res.ok) throw new Error(data.message || "Failed to update quantity");
-    await dispatch(fetchCart());
+    await dispatch(fetchCart(false));
     return data;
   } catch (err) {
     throw err;
@@ -126,7 +130,7 @@ export const removeFromCart = (itemId: number) => async (dispatch: any) => {
     const res = await apiClient.delete(`${API_ENDPOINTS.CART}/${itemId}`);
     const data = await res.json();
     if (!res.ok) throw new Error(data.message || "Failed to remove item");
-    await dispatch(fetchCart());
+    await dispatch(fetchCart(false));
     return data;
   } catch (err) {
     throw err;
@@ -137,7 +141,7 @@ export const clearCart = () => async (dispatch: any) => {
   try {
     const res = await apiClient.delete(API_ENDPOINTS.CART_CLEAR);
     if (!res.ok) throw new Error("Failed to clear cart");
-    await dispatch(fetchCart());
+    await dispatch(fetchCart(false));
   } catch (err) {
     throw err;
   }
@@ -156,8 +160,10 @@ export const setFavoritesLoading = (isLoading: boolean) => ({
 });
 
 // Favorites Thunks
-export const fetchFavorites = () => async (dispatch: any) => {
-  dispatch(setFavoritesLoading(true));
+export const fetchFavorites = (showLoading = true) => async (dispatch: any) => {
+  if (showLoading) {
+    dispatch(setFavoritesLoading(true));
+  }
   try {
     const res = await apiClient.get(API_ENDPOINTS.FAVORITES);
     if (!res.ok) throw new Error("Failed to fetch favorites");
@@ -169,7 +175,9 @@ export const fetchFavorites = () => async (dispatch: any) => {
   } catch (err) {
     console.error(err);
   } finally {
-    dispatch(setFavoritesLoading(false));
+    if (showLoading) {
+      dispatch(setFavoritesLoading(false));
+    }
   }
 };
 
@@ -180,12 +188,44 @@ export const toggleFavorite = (productId: number) => async (dispatch: any, getSt
   if (isFav) {
     const res = await apiClient.delete(`${API_ENDPOINTS.FAVORITES}/${productId}`);
     if (!res.ok) throw new Error("Failed to remove from favorites");
-    await dispatch(fetchFavorites());
+    await dispatch(fetchFavorites(false));
     return { productId, action: "removed" };
   } else {
     const res = await apiClient.post(API_ENDPOINTS.FAVORITES, { product_id: productId });
     if (!res.ok) throw new Error("Failed to add to favorites");
-    await dispatch(fetchFavorites());
+    await dispatch(fetchFavorites(false));
     return { productId, action: "added" };
+  }
+};
+
+// ─── ORDERS ACTION CREATORS ───────────────────────────────
+export const setOrders = (orders: any[]) => ({
+  type: types.SET_ORDERS,
+  payload: orders,
+});
+
+export const setOrdersLoading = (isLoading: boolean) => ({
+  type: types.SET_ORDERS_LOADING,
+  payload: isLoading,
+});
+
+export const fetchOrders = (showLoading = true) => async (dispatch: any) => {
+  if (showLoading) {
+    dispatch(setOrdersLoading(true));
+  }
+  try {
+    const res = await apiClient.get(API_ENDPOINTS.ORDERS);
+    if (res.ok) {
+      const d = await res.json();
+      const list = d.records || d.orders || d.data || [];
+      dispatch(setOrders(list));
+      return list;
+    }
+  } catch (err) {
+    console.error("Failed to fetch orders in Redux thunk", err);
+  } finally {
+    if (showLoading) {
+      dispatch(setOrdersLoading(false));
+    }
   }
 };
