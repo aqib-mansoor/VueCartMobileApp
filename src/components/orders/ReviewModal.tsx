@@ -1,6 +1,6 @@
 import React from "react";
 import { StyleSheet, View, Text, Modal, TextInput, TouchableOpacity, ActivityIndicator, Image } from "react-native";
-import { X, Star, Send } from "lucide-react-native";
+import { X, Star, Send, Eye, EyeOff } from "lucide-react-native";
 import { THEME } from "../../constants/theme";
 import { getProductImage } from "../home/ProductCard";
 
@@ -12,6 +12,8 @@ type ReviewModalProps = {
   setRating: (n: number) => void;
   comment: string;
   setComment: (s: string) => void;
+  isAnonymous: boolean;
+  setIsAnonymous: (v: boolean) => void;
   onSubmit: () => void;
   isSubmitting: boolean;
 };
@@ -26,6 +28,8 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({
   setRating,
   comment,
   setComment,
+  isAnonymous,
+  setIsAnonymous,
   onSubmit,
   isSubmitting,
 }) => {
@@ -85,6 +89,37 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({
             onChangeText={setComment}
           />
 
+          {/* Anonymous Toggle */}
+          <View style={s.anonRow}>
+            <View style={s.anonLabelWrap}>
+              {isAnonymous
+                ? <EyeOff size={15} color="#6366F1" />
+                : <Eye size={15} color={THEME.colors.textSecondary} />
+              }
+              <View>
+                <Text style={s.anonTitle}>
+                  Post as: <Text style={isAnonymous ? s.anonHighlight : s.namedHighlight}>
+                    {isAnonymous ? "Anonymous" : "My Name"}
+                  </Text>
+                </Text>
+                <Text style={s.anonHint}>
+                  {isAnonymous
+                    ? "Your name is hidden from other shoppers"
+                    : "Your name will be visible to others"}
+                </Text>
+              </View>
+            </View>
+
+            {/* Toggle pill */}
+            <TouchableOpacity
+              style={[s.togglePill, isAnonymous && s.togglePillAnon]}
+              onPress={() => setIsAnonymous(!isAnonymous)}
+              activeOpacity={0.8}
+            >
+              <View style={[s.toggleThumb, isAnonymous && s.toggleThumbRight]} />
+            </TouchableOpacity>
+          </View>
+
           <TouchableOpacity
             style={[s.submitBtn, rating === 0 && s.submitBtnDisabled]}
             onPress={onSubmit}
@@ -133,8 +168,77 @@ const s = StyleSheet.create({
     fontSize: 13,
     color: THEME.colors.textPrimary,
     minHeight: 90,
-    marginBottom: 16,
+    marginBottom: 14,
   },
+
+  // Anonymous toggle row
+  anonRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    backgroundColor: "#F8FAFC",
+    borderRadius: 14,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+    gap: 12,
+  },
+  anonLabelWrap: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 10,
+    flex: 1,
+  },
+  anonTitle: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: THEME.colors.textPrimary,
+  },
+  anonHighlight: {
+    color: "#6366F1",
+    fontWeight: "900",
+  },
+  namedHighlight: {
+    color: THEME.colors.primary,
+    fontWeight: "900",
+  },
+  anonHint: {
+    fontSize: 10,
+    color: THEME.colors.textMuted,
+    marginTop: 2,
+    fontWeight: "500",
+  },
+
+  // Toggle switch
+  togglePill: {
+    width: 44,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: "#CBD5E1",
+    justifyContent: "center",
+    paddingHorizontal: 2,
+  },
+  togglePillAnon: {
+    backgroundColor: "#6366F1",
+  },
+  toggleThumb: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: "#FFF",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.15,
+    shadowRadius: 2,
+    elevation: 2,
+    alignSelf: "flex-start",
+  },
+  toggleThumbRight: {
+    alignSelf: "flex-end",
+  },
+
   submitBtn: { backgroundColor: THEME.colors.primary, borderRadius: 14, paddingVertical: 14, flexDirection: "row", justifyContent: "center", alignItems: "center" },
   submitBtnDisabled: { backgroundColor: "#CBD5E1" },
   submitBtnText: { color: "#FFF", fontSize: 15, fontWeight: "800" },

@@ -23,6 +23,7 @@ type Review = {
   rating: number;
   comment: string;
   created_at: string;
+  is_anonymous?: boolean;
   user?: {
     id: number;
     name: string;
@@ -195,13 +196,15 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
                 {reviews.slice(0, 2).map((rev) => (
                   <View key={rev.id} style={styles.reviewItem}>
                     <View style={styles.reviewHeader}>
-                      <View style={styles.reviewUserAvatar}>
+                      <View style={[styles.reviewUserAvatar, rev.is_anonymous && styles.reviewUserAvatarAnon]}>
                         <Text style={styles.reviewUserAvatarText}>
-                          {rev.user?.name ? rev.user.name[0].toUpperCase() : "U"}
+                          {rev.is_anonymous ? "?" : (rev.user?.name ? rev.user.name[0].toUpperCase() : "U")}
                         </Text>
                       </View>
                       <View style={styles.reviewUserInfo}>
-                        <Text style={styles.reviewUserName}>{rev.user?.name || "Customer"}</Text>
+                        <Text style={[styles.reviewUserName, rev.is_anonymous && styles.reviewUserNameAnon]}>
+                          {rev.is_anonymous ? "Anonymous" : (rev.user?.name || "Customer")}
+                        </Text>
                         <View style={styles.reviewStarsRow}>
                           {[1, 2, 3, 4, 5].map((star) => (
                             <Text key={star} style={{ fontSize: 10, color: star <= rev.rating ? "#F59E0B" : THEME.colors.textMuted }}>
@@ -330,13 +333,15 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
                 getSortedFilteredReviews().map((rev) => (
                   <View key={rev.id} style={styles.reviewItem}>
                     <View style={styles.reviewHeader}>
-                      <View style={styles.reviewUserAvatar}>
+                      <View style={[styles.reviewUserAvatar, rev.is_anonymous && styles.reviewUserAvatarAnon]}>
                         <Text style={styles.reviewUserAvatarText}>
-                          {rev.user?.name ? rev.user.name[0].toUpperCase() : "U"}
+                          {rev.is_anonymous ? "?" : (rev.user?.name ? rev.user.name[0].toUpperCase() : "U")}
                         </Text>
                       </View>
                       <View style={styles.reviewUserInfo}>
-                        <Text style={styles.reviewUserName}>{rev.user?.name || "Customer"}</Text>
+                        <Text style={[styles.reviewUserName, rev.is_anonymous && styles.reviewUserNameAnon]}>
+                          {rev.is_anonymous ? "Anonymous" : (rev.user?.name || "Customer")}
+                        </Text>
                         <View style={styles.reviewStarsRow}>
                           {[1, 2, 3, 4, 5].map((star) => (
                             <Text key={star} style={{ fontSize: 10, color: star <= rev.rating ? "#F59E0B" : THEME.colors.textMuted }}>
@@ -561,6 +566,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginRight: 8,
   },
+  reviewUserAvatarAnon: {
+    backgroundColor: "#94A3B8",
+  },
   reviewUserAvatarText: {
     color: "#FFFFFF",
     fontSize: 10,
@@ -573,6 +581,11 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: "700",
     color: THEME.colors.textPrimary,
+  },
+  reviewUserNameAnon: {
+    color: THEME.colors.textMuted,
+    fontStyle: "italic",
+    fontWeight: "600",
   },
   reviewStarsRow: {
     flexDirection: "row",

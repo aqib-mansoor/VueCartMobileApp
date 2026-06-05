@@ -76,6 +76,7 @@ export default function OrdersScreen() {
   const [reviewProductName, setReviewProductName] = useState("");
   const [reviewRating, setReviewRating] = useState(0);
   const [reviewComment, setReviewComment] = useState("");
+  const [isAnonymous, setIsAnonymous] = useState(false);
   const [isSubmittingReview, setIsSubmittingReview] = useState(false);
   const [hoveredStar, setHoveredStar] = useState(0);
 
@@ -151,6 +152,7 @@ export default function OrdersScreen() {
     setReviewProductName(productName);
     setReviewRating(0);
     setReviewComment("");
+    setIsAnonymous(false);
     setHoveredStar(0);
     setShowReviewModal(true);
   };
@@ -166,12 +168,14 @@ export default function OrdersScreen() {
         rating: reviewRating,
         comment: reviewComment,
         order_item_id: reviewOrderItemId,
+        is_anonymous: isAnonymous,
       });
       if (res.ok) {
         setShowReviewModal(false);
         showToast({ message: "Review submitted! Thank you 🌟", type: "success" });
         setReviewRating(0);
         setReviewComment("");
+        setIsAnonymous(false);
         setReviewOrderItemId(null);
         // Instantly refresh orders list to show the new Rated state
         dispatch(fetchOrders(false));
@@ -319,6 +323,8 @@ export default function OrdersScreen() {
         setRating={setReviewRating}
         comment={reviewComment}
         setComment={setReviewComment}
+        isAnonymous={isAnonymous}
+        setIsAnonymous={setIsAnonymous}
         onSubmit={handleReviewSubmit}
         isSubmitting={isSubmittingReview}
       />
