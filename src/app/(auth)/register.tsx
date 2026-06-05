@@ -10,6 +10,8 @@ import {
   ScrollView,
   ActivityIndicator,
   Image,
+  Modal,
+  FlatList,
 } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { Stack, useRouter } from "expo-router";
@@ -18,11 +20,25 @@ import { THEME } from "../../constants/theme";
 import { IMAGES } from "../../constants/images";
 import { API_ENDPOINTS } from "../../constants/endpoints";
 import { LinearGradient } from "expo-linear-gradient";
-import { User, Mail, ShieldCheck, Lock, Sparkles, CheckCircle2, Eye, EyeOff } from "lucide-react-native";
+import { User, Mail, ShieldCheck, Lock, Sparkles, CheckCircle2, Eye, EyeOff, Phone, ChevronDown } from "lucide-react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useAppDispatch } from "../../redux/store";
 import { login as loginAction } from "../../redux/action";
 import { ROUTES } from "../../constants/routes";
+
+const COUNTRY_CODES = [
+  { code: "+1", flag: "🇺🇸", name: "United States" },
+  { code: "+91", flag: "🇮🇳", name: "India" },
+  { code: "+44", flag: "🇬🇧", name: "United Kingdom" },
+  { code: "+92", flag: "🇵🇰", name: "Pakistan" },
+  { code: "+971", flag: "🇦🇪", name: "UAE" },
+  { code: "+966", flag: "🇸🇦", name: "Saudi Arabia" },
+  { code: "+49", flag: "🇩🇪", name: "Germany" },
+  { code: "+33", flag: "🇫🇷", name: "France" },
+  { code: "+61", flag: "🇦🇺", name: "Australia" },
+  { code: "+65", flag: "🇸🇬", name: "Singapore" },
+  { code: "+880", flag: "🇧🇩", name: "Bangladesh" },
+];
 
 export default function RegisterScreen() {
   const router = useRouter();
@@ -34,9 +50,13 @@ export default function RegisterScreen() {
   // Form states
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
   const [age, setAge] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+
+  const [selectedCountry, setSelectedCountry] = useState(COUNTRY_CODES[0]);
+  const [showCountryPicker, setShowCountryPicker] = useState(false);
 
   // Visibility states
   const [showPassword, setShowPassword] = useState(false);
@@ -45,6 +65,7 @@ export default function RegisterScreen() {
   // Input Focus states
   const [nameFocused, setNameFocused] = useState(false);
   const [emailFocused, setEmailFocused] = useState(false);
+  const [phoneFocused, setPhoneFocused] = useState(false);
   const [ageFocused, setAgeFocused] = useState(false);
   const [passwordFocused, setPasswordFocused] = useState(false);
   const [confirmPasswordFocused, setConfirmPasswordFocused] = useState(false);
@@ -70,6 +91,13 @@ export default function RegisterScreen() {
       newErrors.email = "Email is required";
     } else if (!validateEmail(email)) {
       newErrors.email = "Please enter a valid email";
+    }
+
+    // Validate Phone
+    if (!phone) {
+      newErrors.phone = "Phone number is required";
+    } else if (!/^\d+$/.test(phone.replace(/\s+/g, ""))) {
+      newErrors.phone = "Please enter a valid phone number (digits only)";
     }
 
     // Validate Age
@@ -107,6 +135,7 @@ export default function RegisterScreen() {
         name,
         email,
         age: parsedAge,
+        phone: selectedCountry.code + phone.trim().replace(/\s+/g, ""),
         password,
       });
       const data = await response.json();
@@ -241,6 +270,74 @@ export default function RegisterScreen() {
             </View>
             {errors.email && <Text style={styles.errorText}>{errors.email}</Text>}
           </View>
+
+          {/* Phone Number Input */}
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Phone Number</Text>
+            <View
+              style={[
+                styles.inputWrapper,
+                phoneFocused && styles.inputWrapperFocused,
+                errors.phone && styles.inputWrapperError,
+              ]}
+            >
+              <TouchableOpacity
+                style={styles.countryPickerButton}
+                onPress={() => setShowCountryPicker(true)}
+              >
+                <Text style={styles.countryPickerFlag}>{selectedCountry.flag}</Text>
+                <Text style={styles.countryPickerCode}>{selectedCountry.code}</Text>
+                <ChevronDown size={14} color={THEME.colors.textSecondary} />
+              </TouchableOpacity>
+              <View style={styles.phoneDivider} />
+              <TextInput
+                style={styles.input}
+                placeholder="123 456 7890"
+                placeholderTextColor={THEME.colors.textMuted}
+                value={phone}
+                onChangeText={setPhone}
+                keyboardType="phone-pad"
+                onFocus={() => setPhoneFocused(true)}
+                onBlur={() => setPhoneFocused(false)}
+              />
+            </View>
+            {errors.phone && <Text style={styles.errorText}>{errors.phone}</Text>}
+          </View>
+
+          {/* Country picker Modal */}
+          <Modal
+            visible={showCountryPicker}
+            transparent={true}
+            animationType="slide"
+            onRequestClose={() => setShowCountryPicker(false)}
+          >
+            <TouchableOpacity
+              style={styles.modalOverlay}
+              activeOpacity={1}
+              onPress={() => setShowCountryPicker(false)}
+            >
+              <View style={styles.modalContent}>
+                <Text style={styles.modalTitle}>Select Country Code</Text>
+                <FlatList
+                  data={COUNTRY_CODES}
+                  keyExtractor={(item) => item.code}
+                  renderItem={({ item }) => (
+                    <TouchableOpacity
+                      style={styles.countryOption}
+                      onPress={() => {
+                        setSelectedCountry(item);
+                        setShowCountryPicker(false);
+                      }}
+                    >
+                      <Text style={styles.countryFlag}>{item.flag}</Text>
+                      <Text style={styles.countryName}>{item.name}</Text>
+                      <Text style={styles.countryCode}>{item.code}</Text>
+                    </TouchableOpacity>
+                  )}
+                />
+              </View>
+            </TouchableOpacity>
+          </Modal>
 
           {/* Age Input */}
           <View style={styles.inputGroup}>
@@ -583,5 +680,68 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "700",
     color: THEME.colors.primary,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    justifyContent: "flex-end",
+  },
+  modalContent: {
+    backgroundColor: "#FFFFFF",
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    padding: 20,
+    maxHeight: "50%",
+  },
+  modalTitle: {
+    fontSize: 16,
+    fontWeight: "800",
+    color: THEME.colors.textPrimary,
+    marginBottom: 16,
+    textAlign: "center",
+  },
+  countryOption: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: "#F1F5F9",
+  },
+  countryFlag: {
+    fontSize: 20,
+    marginRight: 12,
+  },
+  countryName: {
+    flex: 1,
+    fontSize: 14,
+    color: THEME.colors.textPrimary,
+    fontWeight: "500",
+  },
+  countryCode: {
+    fontSize: 14,
+    color: THEME.colors.textSecondary,
+    fontWeight: "700",
+  },
+  countryPickerButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: Platform.OS === "ios" ? 14 : 10,
+    paddingRight: 8,
+  },
+  countryPickerFlag: {
+    fontSize: 18,
+    marginRight: 4,
+  },
+  countryPickerCode: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: THEME.colors.textPrimary,
+    marginRight: 4,
+  },
+  phoneDivider: {
+    width: 1,
+    height: 20,
+    backgroundColor: THEME.colors.border,
+    marginRight: 10,
   },
 });

@@ -19,6 +19,7 @@ import {
   Shield,
   FileText,
   Info,
+  Phone,
 } from "lucide-react-native";
 import { useEffect, useState } from "react";
 import {
@@ -70,6 +71,7 @@ export default function ProfileScreen() {
   const [name, setName] = useState(user?.name || "");
   const [email, setEmail] = useState(user?.email || "");
   const [age, setAge] = useState(user?.age ? String(user?.age) : "");
+  const [phone, setPhone] = useState(user?.phone || "");
   const [password, setPassword] = useState("");
 
   // Addresses
@@ -99,6 +101,7 @@ export default function ProfileScreen() {
         setName(profile.name || "");
         setEmail(profile.email || "");
         setAge(profile.age ? String(profile.age) : "");
+        setPhone(profile.phone || "");
       }
 
       const addressRes = await apiClient.get(API_ENDPOINTS.ADDRESSES);
@@ -123,20 +126,21 @@ export default function ProfileScreen() {
 
     setIsSaving(true);
     try {
-      const payload: any = { name, email };
+      const payload: any = { name, email, phone };
       if (age.trim()) payload.age = Number(age);
       if (password.trim()) payload.password = password;
 
       const res = await apiClient.put(API_ENDPOINTS.PROFILE, payload);
       if (res.ok) {
         const data = await res.json();
-        const updatedUser = data.user || data.data || { name, email, age: Number(age) };
+        const updatedUser = data.user || data.data || { name, email, age: Number(age), phone };
 
         if (authToken) {
           await dispatch(loginAction(authToken, {
             name: updatedUser.name || name,
             email: updatedUser.email || email,
             age: updatedUser.age || Number(age) || undefined,
+            phone: updatedUser.phone || phone,
           }));
         }
 
@@ -256,6 +260,7 @@ export default function ProfileScreen() {
               </View>
               <Text style={styles.profileName}>{name || "User Name"}</Text>
               <Text style={styles.profileEmail}>{email || "user@example.com"}</Text>
+              {phone ? <Text style={[styles.profileEmail, { marginTop: 2 }]}>{phone}</Text> : null}
               {age ? (
                 <View style={styles.ageBadge}>
                   <Text style={styles.ageBadgeText}>Age: {age}</Text>
@@ -321,6 +326,20 @@ export default function ProfileScreen() {
                   keyboardType="numeric"
                   value={age}
                   onChangeText={setAge}
+                />
+              </View>
+
+              <View style={styles.inputContainer}>
+                <View style={styles.inputIcon}>
+                  <Phone size={18} color={THEME.colors.textSecondary} />
+                </View>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Phone Number"
+                  placeholderTextColor={THEME.colors.textMuted}
+                  keyboardType="phone-pad"
+                  value={phone}
+                  onChangeText={setPhone}
                 />
               </View>
 
