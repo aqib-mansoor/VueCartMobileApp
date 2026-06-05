@@ -1,43 +1,48 @@
-import React, { useState, useEffect } from "react";
-import {
-  StyleSheet,
-  View,
-  Text,
-  TouchableOpacity,
-  TextInput,
-  ActivityIndicator,
-  ScrollView,
-  Image,
-} from "react-native";
 import { Stack, useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import { SafeAreaView } from "react-native-safe-area-context";
 import {
-  ChevronLeft,
-  User,
-  Mail,
-  Calendar,
-  Save,
-  Key,
-  ClipboardList,
-  MapPin,
-  Heart,
-  ShoppingCart,
-  Settings,
-  LogOut,
-  Plus,
   ArrowRight,
+  Calendar,
+  ChevronLeft,
+  ClipboardList,
+  Heart,
+  Key,
+  LogOut,
+  Mail,
+  MapPin,
+  Plus,
+  Save,
+  Settings,
+  ShoppingCart,
+  User,
+  HelpCircle,
+  Shield,
+  FileText,
+  Info,
 } from "lucide-react-native";
-import { THEME } from "../../constants/theme";
-import { apiClient } from "../../utils/api";
-import { API_ENDPOINTS } from "../../constants/endpoints";
+import { useEffect, useState } from "react";
+import {
+  ActivityIndicator,
+  Image,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { getProductImage } from "../../components/home/ProductCard";
-import { useToast } from "../../components/ui/Toast";
 import { MenuItem } from "../../components/profile/MenuItem";
 import { useConfirm } from "../../components/ui/ConfirmDialog";
-import { useAppDispatch, useAppSelector } from "../../redux/store";
-import { login as loginAction, logout as logoutAction, fetchFavorites } from "../../redux/action";
+import { useToast } from "../../components/ui/Toast";
+import { API_ENDPOINTS } from "../../constants/endpoints";
 import { ROUTES } from "../../constants/routes";
+import { THEME } from "../../constants/theme";
+import { fetchFavorites, login as loginAction, logout as logoutAction } from "../../redux/action";
+import { useAppDispatch, useAppSelector } from "../../redux/store";
+import { apiClient } from "../../utils/api";
+import { InfoModal, InfoModalType } from "../../components/profile/InfoModal";
 
 type Address = {
   id: number;
@@ -59,6 +64,7 @@ export default function ProfileScreen() {
   const [isLoading, setIsLoading] = useState(!user);
   const [isSaving, setIsSaving] = useState(false);
   const [showEditForm, setShowEditForm] = useState(false);
+  const [activeModal, setActiveModal] = useState<InfoModalType>(null);
 
   // Form inputs
   const [name, setName] = useState(user?.name || "");
@@ -375,7 +381,7 @@ export default function ProfileScreen() {
             {showNewAddressForm && (
               <View style={[styles.formCard, { marginHorizontal: 0, marginTop: 0, marginBottom: 12, elevation: 0, borderWidth: 1, borderColor: "#E2E8F0" }]}>
                 <Text style={styles.formSectionTitle}>Add New Address</Text>
-                
+
                 <View style={styles.inputContainer}>
                   <TextInput
                     style={[styles.input, { paddingHorizontal: 12 }]}
@@ -516,6 +522,36 @@ export default function ProfileScreen() {
             )}
           </View>
 
+          {/* Support & Legal Section */}
+          <View style={styles.sectionCard}>
+            <Text style={[styles.formSectionTitle, { marginBottom: 12 }]}>Support & Legal</Text>
+            <MenuItem
+              icon={<HelpCircle size={20} color={THEME.colors.primary} />}
+              label="Help & Support"
+              subtitle="FAQ and customer care details"
+              onPress={() => setActiveModal("support")}
+            />
+            <MenuItem
+              icon={<Shield size={20} color="#10B981" />}
+              label="Privacy Policy"
+              subtitle="Our commitment to your data"
+              onPress={() => setActiveModal("privacy")}
+            />
+            <MenuItem
+              icon={<FileText size={20} color="#F59E0B" />}
+              label="Terms of Service"
+              subtitle="User agreement and rules"
+              onPress={() => setActiveModal("terms")}
+            />
+            <MenuItem
+              icon={<Info size={20} color="#3B82F6" />}
+              label="About Us"
+              subtitle="App version and tech details"
+              onPress={() => setActiveModal("about")}
+              isLast
+            />
+          </View>
+
           {/* Logout at Bottom */}
           <TouchableOpacity
             style={styles.logoutCard}
@@ -527,6 +563,13 @@ export default function ProfileScreen() {
           </TouchableOpacity>
         </ScrollView>
       )}
+
+      {/* Reusable Info Modal */}
+      <InfoModal
+        type={activeModal}
+        visible={activeModal !== null}
+        onClose={() => setActiveModal(null)}
+      />
     </SafeAreaView>
   );
 }
