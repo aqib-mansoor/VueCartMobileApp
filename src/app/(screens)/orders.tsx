@@ -70,9 +70,9 @@ export default function OrdersScreen() {
   const [searchQuery, setSearchQuery] = useState("");
   const [expandedOrders, setExpandedOrders] = useState<Set<number>>(new Set());
 
-  // Review modal state
   const [showReviewModal, setShowReviewModal] = useState(false);
   const [reviewProductId, setReviewProductId] = useState<number | null>(null);
+  const [reviewOrderItemId, setReviewOrderItemId] = useState<number | null>(null);
   const [reviewProductName, setReviewProductName] = useState("");
   const [reviewRating, setReviewRating] = useState(0);
   const [reviewComment, setReviewComment] = useState("");
@@ -145,8 +145,9 @@ export default function OrdersScreen() {
     });
   };
 
-  const openReviewModal = (productId: number, productName: string) => {
+  const openReviewModal = (productId: number, productName: string, orderItemId: number) => {
     setReviewProductId(productId);
+    setReviewOrderItemId(orderItemId);
     setReviewProductName(productName);
     setReviewRating(0);
     setReviewComment("");
@@ -164,12 +165,16 @@ export default function OrdersScreen() {
       const res = await apiClient.post(`${API_ENDPOINTS.PRODUCTS}/${reviewProductId}/reviews`, {
         rating: reviewRating,
         comment: reviewComment,
+        order_item_id: reviewOrderItemId,
       });
       if (res.ok) {
         setShowReviewModal(false);
         showToast({ message: "Review submitted! Thank you 🌟", type: "success" });
         setReviewRating(0);
         setReviewComment("");
+        setReviewOrderItemId(null);
+        // Instantly refresh orders list to show the new Rated state
+        dispatch(fetchOrders(false));
       } else {
         showToast({ message: "Failed to submit review", type: "error" });
       }

@@ -33,7 +33,7 @@ type OrderCardProps = {
   onToggleExpand: () => void;
   onCancelOrder: (orderId: number) => void;
   onBuyAgain: (productId?: number) => void;
-  onRateProduct: (productId: number, productName: string) => void;
+  onRateProduct: (productId: number, productName: string, orderItemId: number) => void;
   statusConfig: Record<string, { bg: string; text: string; border: string; label: string; Icon: any }>;
 };
 
@@ -206,7 +206,7 @@ export const OrderCard: React.FC<OrderCardProps> = ({
                   ) : (
                     <TouchableOpacity
                       style={s.reviewBtn}
-                      onPress={() => onRateProduct(item.product_id, itemName)}
+                      onPress={() => onRateProduct(item.product_id, itemName, item.id)}
                       activeOpacity={0.8}
                     >
                       <Star size={13} color={THEME.colors.primary} fill={THEME.colors.primary} />
