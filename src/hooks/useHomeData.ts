@@ -1,9 +1,10 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "expo-router";
-import { useAuth } from "../context/AuthContext";
 import { apiClient } from "../utils/api";
 import { API_ENDPOINTS } from "../constants/endpoints";
 import { useToast } from "../components/Toast";
+import { useAppDispatch, useAppSelector } from "../redux/store";
+import { fetchCart, addToCart, fetchFavorites, toggleFavorite, logout as logoutAction } from "../redux/action";
 
 type Category = {
   id: number;
@@ -22,31 +23,31 @@ type Product = {
 };
 
 export const useHomeData = () => {
-  const { user, authToken, logout } = useAuth();
   const router = useRouter();
   const { showToast } = useToast();
+  const dispatch = useAppDispatch();
 
   // Core Data States
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(null);
 
-  // Favorites States
-  const [favoritedProductIds, setFavoritedProductIds] = useState<Set<number>>(new Set());
+  // Redux Selectors
+  const { user, authToken } = useAppSelector((state) => state.auth);
+  const favoritedIdsArray = useAppSelector((state) => state.favorites.favoritedIds);
+  const favoritedProductIds = new Set<number>(favoritedIdsArray);
+  const cartCount = useAppSelector((state) => state.cart.meta.total_items);
+  const isAddingToCart = useAppSelector((state) => state.cart.isAddingToCartId);
 
   // Pagination & Loading States
   const [page, setPage] = useState(1);
   const [lastPage, setLastPage] = useState(1);
   const [isProductsLoading, setIsProductsLoading] = useState(false);
   const [isCategoriesLoading, setIsCategoriesLoading] = useState(false);
-  const [isAddingToCart, setIsAddingToCart] = useState<number | null>(null);
 
   // Search States
   const [searchQuery, setSearchQuery] = useState("");
   const [isSearching, setIsSearching] = useState(false);
-
-  // Global Cart Count
-  const [cartCount, setCartCount] = useState(0);
 
   // Selected Product Detail Modal state
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
@@ -56,10 +57,10 @@ export const useHomeData = () => {
     fetchCategories();
     fetchProducts(1, true);
     if (authToken) {
-      fetchCartCount();
-      fetchFavorites();
+      dispatch(fetchCart());
+      dispatch(fetchFavorites());
     }
-  }, [authToken]);
+  }, [authToken, dispatch]);
 
   // Debounced Search trigger
   useEffect(() => {
@@ -152,37 +153,7 @@ export const useHomeData = () => {
     }
   };
 
-  // Fetch Cart Items count
-  const fetchCartCount = async () => {
-    try {
-      const res = await apiClient.get(API_ENDPOINTS.CART);
-      if (res.ok) {
-        const data = await res.json();
-        const records = data.records || data;
-        const meta = records.meta || data.meta;
-        if (meta) {
-          setCartCount(meta.total_items || 0);
-        }
-      }
-    } catch (err) {
-      console.error("Error fetching cart count:", err);
-    }
-  };
 
-  // Fetch Favorites list
-  const fetchFavorites = async () => {
-    try {
-      const res = await apiClient.get(API_ENDPOINTS.FAVORITES);
-      if (res.ok) {
-        const data = await res.json();
-        const favList = data.records || data.favorites || data.data || [];
-        const ids = new Set<number>(favList.map((fav: any) => Number(fav.product_id)));
-        setFavoritedProductIds(ids);
-      }
-    } catch (err) {
-      console.error("Error fetching favorites:", err);
-    }
-  };
 
   // Handle Category Filter Selection
   const handleSelectCategory = (categoryId: number | null) => {
@@ -224,20 +195,11 @@ export const useHomeData = () => {
       return;
     }
 
-    setIsAddingToCart(productId);
     try {
-      const res = await apiClient.post(API_ENDPOINTS.CART, { product_id: productId, quantity: 1 });
-      if (res.ok) {
-        showToast({ message: "Added to cart! 🎉", type: "success" });
-        fetchCartCount();
-      } else {
-        const data = await res.json();
-        showToast({ message: data.message || "Failed to add to cart", type: "error" });
-      }
-    } catch (err) {
-      showToast({ message: "Could not connect to the server", type: "error" });
-    } finally {
-      setIsAddingToCart(null);
+      await dispatch(addToCart(productId, 1));
+      showToast({ message: "Added to cart! 🎉", type: "success" });
+    } catch (err: any) {
+      showToast({ message: err || "Failed to add to cart", type: "error" });
     }
   };
 
@@ -249,41 +211,15 @@ export const useHomeData = () => {
       return;
     }
 
-    const isFav = favoritedProductIds.has(productId);
-    const updated = new Set(favoritedProductIds);
-
-    if (isFav) {
-      updated.delete(productId);
-      setFavoritedProductIds(updated);
-      try {
-        const res = await apiClient.delete(`${API_ENDPOINTS.FAVORITES}/${productId}`);
-        if (res.ok) {
-          showToast({ message: "Removed from favorites", type: "info" });
-        } else {
-          updated.add(productId);
-          setFavoritedProductIds(updated);
-          showToast({ message: "Failed to remove from favorites", type: "error" });
-        }
-      } catch {
-        updated.add(productId);
-        setFavoritedProductIds(updated);
+    try {
+      const res = await dispatch(toggleFavorite(productId));
+      if (res.action === "added") {
+        showToast({ message: "Added to favorites! ❤️", type: "success" });
+      } else {
+        showToast({ message: "Removed from favorites", type: "info" });
       }
-    } else {
-      updated.add(productId);
-      setFavoritedProductIds(updated);
-      try {
-        const res = await apiClient.post(API_ENDPOINTS.FAVORITES, { product_id: productId });
-        if (res.ok) {
-          showToast({ message: "Added to favorites! ❤️", type: "success" });
-        } else {
-          updated.delete(productId);
-          setFavoritedProductIds(updated);
-          showToast({ message: "Failed to add to favorites", type: "error" });
-        }
-      } catch {
-        updated.delete(productId);
-        setFavoritedProductIds(updated);
-      }
+    } catch (err: any) {
+      showToast({ message: err || "Failed to update favorites", type: "error" });
     }
   };
 
@@ -295,7 +231,7 @@ export const useHomeData = () => {
   };
 
   const handleLogout = async () => {
-    await logout();
+    await dispatch(logoutAction());
     router.replace("/login" as any);
   };
 

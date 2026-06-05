@@ -2,6 +2,7 @@ import React from "react";
 import { StyleSheet, View, Text, TouchableOpacity, Image } from "react-native";
 import { MapPin, XCircle, ChevronUp, ChevronDown, RotateCcw, Star } from "lucide-react-native";
 import { THEME } from "../../constants/theme";
+import { IMAGES } from "../../constants/images";
 import { getProductImage } from "../home/ProductCard";
 import { formatOrderNumber } from "../../utils/orderUtils";
 
@@ -80,7 +81,7 @@ export const OrderCard: React.FC<OrderCardProps> = ({
             <Image
               source={{ uri: getProductImage(order.items[0].product?.name || "") }}
               style={s.collapsedProductImg}
-              defaultSource={require("../../../assets/images/icon.png")}
+              defaultSource={IMAGES.placeholder}
             />
             <View style={s.collapsedProductInfo}>
               <Text style={s.collapsedProductName} numberOfLines={1}>
@@ -186,7 +187,7 @@ export const OrderCard: React.FC<OrderCardProps> = ({
                 <Image
                   source={{ uri: itemImgUrl }}
                   style={s.itemImg}
-                  defaultSource={require("../../../assets/images/icon.png")}
+                  defaultSource={IMAGES.placeholder}
                 />
                 <View style={s.itemInfo}>
                   <Text style={s.itemName} numberOfLines={2}>{itemName}</Text>

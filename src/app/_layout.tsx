@@ -1,13 +1,20 @@
 import React, { useEffect } from "react";
 import { Stack, useRouter, useSegments } from "expo-router";
-import { AuthProvider, useAuth } from "../context/AuthContext";
 import { ToastProvider } from "../components/Toast";
 import { ConfirmProvider } from "../components/ConfirmDialog";
+import { Provider } from "react-redux";
+import { store, useAppDispatch, useAppSelector } from "../redux/store";
+import { loadAuth } from "../redux/action";
 
 function RootLayoutNavigation() {
-  const { authToken, isLoading } = useAuth();
+  const dispatch = useAppDispatch();
+  const { authToken, isLoading } = useAppSelector((state) => state.auth);
   const segments = useSegments();
   const router = useRouter();
+
+  useEffect(() => {
+    dispatch(loadAuth());
+  }, [dispatch]);
 
   useEffect(() => {
     if (isLoading) return;
@@ -33,12 +40,12 @@ function RootLayoutNavigation() {
 
 export default function RootLayout() {
   return (
-    <AuthProvider>
+    <Provider store={store}>
       <ToastProvider>
         <ConfirmProvider>
           <RootLayoutNavigation />
         </ConfirmProvider>
       </ToastProvider>
-    </AuthProvider>
+    </Provider>
   );
 }

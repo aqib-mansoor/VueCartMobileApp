@@ -14,13 +14,13 @@ import { Stack, useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { ChevronLeft, Trash2, ShoppingBag, Plus, Minus, ArrowRight, Percent, Truck, Shield, Tag } from "lucide-react-native";
-import { THEME } from "../constants/theme";
-import { apiClient } from "../utils/api";
-import { API_ENDPOINTS } from "../constants/endpoints";
-import { getProductImage } from "../components/home/ProductCard";
-import { useToast } from "../components/Toast";
-import { CartItemRow } from "../components/cart/CartItemRow";
-import { useConfirm } from "../components/ConfirmDialog";
+import { THEME } from "../../constants/theme";
+import { getProductImage } from "../../components/home/ProductCard";
+import { useToast } from "../../components/Toast";
+import { CartItemRow } from "../../components/cart/CartItemRow";
+import { useConfirm } from "../../components/ConfirmDialog";
+import { useAppDispatch, useAppSelector } from "../../redux/store";
+import { fetchCart, updateCartQuantity, removeFromCart, clearCart } from "../../redux/action";
 
 type CartItem = {
   cart_item_id: number;
@@ -38,71 +38,38 @@ type CartMeta = {
 
 export default function CartScreen() {
   const router = useRouter();
+  const dispatch = useAppDispatch();
   const { showToast } = useToast();
   const { showConfirm } = useConfirm();
-  const [cartItems, setCartItems] = useState<CartItem[]>([]);
-  const [meta, setMeta] = useState<CartMeta>({ total_items: 0, grand_total: 0 });
-  const [isLoading, setIsLoading] = useState(true);
+
+  const cartItems = useAppSelector((state) => state.cart.items);
+  const meta = useAppSelector((state) => state.cart.meta);
+  const isLoading = useAppSelector((state) => state.cart.isLoading);
+
   const [isClearing, setIsClearing] = useState(false);
   const [promoCode, setPromoCode] = useState("");
   const [wipeAnim] = useState(new Animated.Value(1));
 
-  useEffect(() => { fetchCartData(); }, []);
-
-  const fetchCartData = async () => {
-    setIsLoading(true);
-    try {
-      const res = await apiClient.get(API_ENDPOINTS.CART);
-      if (res.ok) {
-        const data = await res.json();
-        const records = data.records || data;
-        const items = records.cart || records.data || data.cart || data.data || [];
-        setCartItems(items);
-        const meta = records.meta || data.meta;
-        setMeta({
-          total_items: meta?.total_items || items.reduce((a: number, i: CartItem) => a + i.quantity, 0),
-          grand_total: Number(meta?.grand_total || items.reduce((a: number, i: CartItem) => a + i.quantity * Number(i.price), 0)),
-        });
-      }
-    } catch (err) {
-      showToast({ message: "Failed to load cart", type: "error" });
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  useEffect(() => {
+    dispatch(fetchCart());
+  }, [dispatch]);
 
   const updateQuantity = async (itemId: number, newQty: number, currentQty: number) => {
     if (newQty < 1) { handleRemoveItem(itemId); return; }
-    const orig = [...cartItems];
-    const updated = cartItems.map(i => i.cart_item_id === itemId ? { ...i, quantity: newQty } : i);
-    const diff = newQty - currentQty;
-    const target = cartItems.find(i => i.cart_item_id === itemId);
-    const price = target ? Number(target.price) : 0;
-    setCartItems(updated);
-    setMeta(p => ({ total_items: p.total_items + diff, grand_total: p.grand_total + diff * price }));
     try {
-      const res = await apiClient.put(`${API_ENDPOINTS.CART}/${itemId}`, { quantity: newQty });
-      if (!res.ok) { setCartItems(orig); fetchCartData(); showToast({ message: "Failed to update quantity", type: "error" }); }
-    } catch { setCartItems(orig); fetchCartData(); }
+      await dispatch(updateCartQuantity(itemId, newQty));
+    } catch (err: any) {
+      showToast({ message: err || "Failed to update quantity", type: "error" });
+    }
   };
 
   const handleRemoveItem = async (itemId: number) => {
-    const orig = [...cartItems];
-    const t = cartItems.find(i => i.cart_item_id === itemId);
-    setCartItems(cartItems.filter(i => i.cart_item_id !== itemId));
-    setMeta(p => ({
-      total_items: Math.max(0, p.total_items - (t?.quantity || 0)),
-      grand_total: Math.max(0, p.grand_total - (t?.quantity || 0) * Number(t?.price || 0)),
-    }));
     try {
-      const res = await apiClient.delete(`${API_ENDPOINTS.CART}/${itemId}`);
-      if (res.ok) {
-        showToast({ message: "Item removed from cart", type: "success" });
-      } else {
-        setCartItems(orig); fetchCartData();
-        showToast({ message: "Failed to remove item", type: "error" });
-      }
-    } catch { setCartItems(orig); fetchCartData(); }
+      await dispatch(removeFromCart(itemId));
+      showToast({ message: "Item removed from cart", type: "success" });
+    } catch (err: any) {
+      showToast({ message: err || "Failed to remove item", type: "error" });
+    }
   };
 
   const handleClearCart = () => {
@@ -115,14 +82,15 @@ export default function CartScreen() {
       onConfirm: async () => {
         setIsClearing(true);
         try {
-          const res = await apiClient.delete(API_ENDPOINTS.CART_CLEAR);
-          if (res.ok) {
-            Animated.timing(wipeAnim, { toValue: 0, duration: 400, useNativeDriver: true }).start(() => {
-              setCartItems([]); setMeta({ total_items: 0, grand_total: 0 }); wipeAnim.setValue(1); setIsClearing(false);
-              showToast({ message: "Cart cleared successfully", type: "success" });
-            });
-          } else { setIsClearing(false); showToast({ message: "Failed to clear cart", type: "error" }); }
-        } catch { setIsClearing(false); showToast({ message: "Network error", type: "error" }); }
+          await dispatch(clearCart());
+          Animated.timing(wipeAnim, { toValue: 0, duration: 400, useNativeDriver: true }).start(() => {
+            wipeAnim.setValue(1); setIsClearing(false);
+            showToast({ message: "Cart cleared successfully", type: "success" });
+          });
+        } catch (err: any) {
+          setIsClearing(false);
+          showToast({ message: err || "Failed to clear cart", type: "error" });
+        }
       }
     });
   };

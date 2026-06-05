@@ -13,39 +13,31 @@ import {
 } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { Stack, useRouter } from "expo-router";
-import { useAuth } from "../context/AuthContext";
-import { apiClient } from "../utils/api";
-import { THEME } from "../constants/theme";
-import { IMAGES } from "../constants/images";
-import { API_ENDPOINTS } from "../constants/endpoints";
+import { apiClient } from "../../utils/api";
+import { THEME } from "../../constants/theme";
+import { IMAGES } from "../../constants/images";
+import { API_ENDPOINTS } from "../../constants/endpoints";
 import { LinearGradient } from "expo-linear-gradient";
-import { User, Mail, ShieldCheck, Lock, Sparkles, CheckCircle2, Eye, EyeOff } from "lucide-react-native";
+import { Mail, Lock, Sparkles, CheckCircle2, Eye, EyeOff } from "lucide-react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useAppDispatch } from "../../redux/store";
+import { login as loginAction } from "../../redux/action";
 
-export default function RegisterScreen() {
+export default function LoginScreen() {
   const router = useRouter();
-  const { login } = useAuth();
+  const dispatch = useAppDispatch();
 
   const [isLoading, setIsLoading] = useState(false);
   const [globalError, setGlobalError] = useState<string | null>(null);
 
   // Form states
-  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
-  const [age, setAge] = useState("");
   const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-
-  // Visibility states
   const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   // Input Focus states
-  const [nameFocused, setNameFocused] = useState(false);
   const [emailFocused, setEmailFocused] = useState(false);
-  const [ageFocused, setAgeFocused] = useState(false);
   const [passwordFocused, setPasswordFocused] = useState(false);
-  const [confirmPasswordFocused, setConfirmPasswordFocused] = useState(false);
 
   // Validation error states
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
@@ -54,42 +46,20 @@ export default function RegisterScreen() {
     return /\S+@\S+\.\S+/.test(val);
   };
 
-  const handleRegister = async () => {
+  const handleLogin = async () => {
     setGlobalError(null);
     const newErrors: { [key: string]: string } = {};
 
-    // Validate Name
-    if (!name) {
-      newErrors.name = "Name is required";
-    }
-
-    // Validate Email
     if (!email) {
       newErrors.email = "Email is required";
     } else if (!validateEmail(email)) {
       newErrors.email = "Please enter a valid email";
     }
 
-    // Validate Age
-    const parsedAge = parseInt(age, 10);
-    if (!age) {
-      newErrors.age = "Age is required";
-    } else if (isNaN(parsedAge) || parsedAge < 18 || parsedAge > 100) {
-      newErrors.age = "Age must be an integer between 18 and 100";
-    }
-
-    // Validate Password
     if (!password) {
       newErrors.password = "Password is required";
     } else if (password.length < 8) {
       newErrors.password = "Password must be at least 8 characters";
-    }
-
-    // Validate Confirm Password
-    if (!confirmPassword) {
-      newErrors.confirmPassword = "Confirm password is required";
-    } else if (password !== confirmPassword) {
-      newErrors.confirmPassword = "Passwords do not match";
     }
 
     if (Object.keys(newErrors).length > 0) {
@@ -101,18 +71,12 @@ export default function RegisterScreen() {
     setIsLoading(true);
 
     try {
-      const response = await apiClient.post(API_ENDPOINTS.REGISTER, {
-        name,
-        email,
-        age: parsedAge,
-        password,
-      });
+      const response = await apiClient.post(API_ENDPOINTS.LOGIN, { email, password });
       const data = await response.json();
 
       if (response.ok) {
-        await login(data.access_token, data.user);
+        await dispatch(loginAction(data.access_token, data.user));
         setPassword("");
-        setConfirmPassword("");
         router.replace("/home" as any);
       } else {
         if (response.status === 422) {
@@ -121,6 +85,8 @@ export default function RegisterScreen() {
           } else {
             setGlobalError(data.message || "Validation failed.");
           }
+        } else if (response.status === 401) {
+          setGlobalError("Invalid credentials. Please try again.");
         } else {
           setGlobalError(data.message || "An unexpected error occurred.");
         }
@@ -159,49 +125,14 @@ export default function RegisterScreen() {
         </LinearGradient>
 
         <View style={styles.card}>
-          <Text style={styles.title}>Create Account</Text>
-          <Text style={styles.subtitle}>Register a new profile to unlock exclusive member privileges</Text>
+          <Text style={styles.title}>Welcome Back</Text>
+          <Text style={styles.subtitle}>Log in to continue your premium experience</Text>
 
           {globalError && (
             <View style={styles.errorBanner}>
               <Text style={styles.errorBannerText}>{globalError}</Text>
             </View>
           )}
-
-          {/* Full Name Input */}
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>Full Name</Text>
-            <View
-              style={[
-                styles.inputWrapper,
-                nameFocused && styles.inputWrapperFocused,
-                errors.name && styles.inputWrapperError,
-              ]}
-            >
-              <User
-                size={20}
-                color={
-                  errors.name
-                    ? THEME.colors.error
-                    : nameFocused
-                    ? THEME.colors.primary
-                    : THEME.colors.textMuted
-                }
-                style={styles.inputIcon}
-              />
-              <TextInput
-                style={styles.input}
-                placeholder="John Doe"
-                placeholderTextColor={THEME.colors.textMuted}
-                value={name}
-                onChangeText={setName}
-                autoCapitalize="words"
-                onFocus={() => setNameFocused(true)}
-                onBlur={() => setNameFocused(false)}
-              />
-            </View>
-            {errors.name && <Text style={styles.errorText}>{errors.name}</Text>}
-          </View>
 
           {/* Email Input */}
           <View style={styles.inputGroup}>
@@ -238,41 +169,6 @@ export default function RegisterScreen() {
               />
             </View>
             {errors.email && <Text style={styles.errorText}>{errors.email}</Text>}
-          </View>
-
-          {/* Age Input */}
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>Age</Text>
-            <View
-              style={[
-                styles.inputWrapper,
-                ageFocused && styles.inputWrapperFocused,
-                errors.age && styles.inputWrapperError,
-              ]}
-            >
-              <ShieldCheck
-                size={20}
-                color={
-                  errors.age
-                    ? THEME.colors.error
-                    : ageFocused
-                    ? THEME.colors.primary
-                    : THEME.colors.textMuted
-                }
-                style={styles.inputIcon}
-              />
-              <TextInput
-                style={styles.input}
-                placeholder="25"
-                placeholderTextColor={THEME.colors.textMuted}
-                value={age}
-                onChangeText={setAge}
-                keyboardType="number-pad"
-                onFocus={() => setAgeFocused(true)}
-                onBlur={() => setAgeFocused(false)}
-              />
-            </View>
-            {errors.age && <Text style={styles.errorText}>{errors.age}</Text>}
           </View>
 
           {/* Password Input */}
@@ -321,87 +217,47 @@ export default function RegisterScreen() {
             {errors.password && <Text style={styles.errorText}>{errors.password}</Text>}
           </View>
 
-          {/* Confirm Password Input */}
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>Confirm Password</Text>
-            <View
-              style={[
-                styles.inputWrapper,
-                confirmPasswordFocused && styles.inputWrapperFocused,
-                errors.confirmPassword && styles.inputWrapperError,
-              ]}
-            >
-              <Lock
-                size={20}
-                color={
-                  errors.confirmPassword
-                    ? THEME.colors.error
-                    : confirmPasswordFocused
-                    ? THEME.colors.primary
-                    : THEME.colors.textMuted
-                }
-                style={styles.inputIcon}
-              />
-              <TextInput
-                style={styles.input}
-                placeholder="••••••••"
-                placeholderTextColor={THEME.colors.textMuted}
-                value={confirmPassword}
-                onChangeText={setConfirmPassword}
-                secureTextEntry={!showConfirmPassword}
-                autoCapitalize="none"
-                onFocus={() => setConfirmPasswordFocused(true)}
-                onBlur={() => setConfirmPasswordFocused(false)}
-              />
-              <TouchableOpacity
-                onPress={() => setShowConfirmPassword(!showConfirmPassword)}
-                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-              >
-                {showConfirmPassword ? (
-                  <EyeOff size={20} color={THEME.colors.textMuted} />
-                ) : (
-                  <Eye size={20} color={THEME.colors.textMuted} />
-                )}
-              </TouchableOpacity>
-            </View>
-            {errors.confirmPassword && <Text style={styles.errorText}>{errors.confirmPassword}</Text>}
-          </View>
+          {/* Forgot Password Placeholder / Helper */}
+          <TouchableOpacity style={styles.forgotPasswordContainer} activeOpacity={0.7}>
+            <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
+          </TouchableOpacity>
 
-          {/* Register CTA Button */}
+          {/* Login CTA Button */}
           <TouchableOpacity
             style={styles.submitButton}
-            onPress={handleRegister}
+            onPress={handleLogin}
             disabled={isLoading}
             activeOpacity={0.9}
           >
             {isLoading ? (
               <ActivityIndicator color={THEME.colors.textLight} size="small" />
             ) : (
-              <Text style={styles.submitButtonText}>Sign Up</Text>
+              <Text style={styles.submitButtonText}>Log In</Text>
             )}
           </TouchableOpacity>
 
-          {/* Tata Neu inspired Loyalty benefits card */}
+
+          {/* Tata Neu inspired Plus Membership / NeuPass Banner */}
           <View style={styles.plusContainer}>
             <View style={styles.plusHeader}>
               <Sparkles size={16} color={THEME.colors.secondary} />
-              <Text style={styles.plusTitle}>Instant CartVue Plus Membership</Text>
+              <Text style={styles.plusTitle}>CartVue Plus Benefits</Text>
             </View>
             <View style={styles.benefitRow}>
               <CheckCircle2 size={14} color={THEME.colors.success} style={styles.benefitIcon} />
-              <Text style={styles.benefitText}>Earn & Redeem rewards across all catalogs</Text>
+              <Text style={styles.benefitText}>Get 5% NeuCoins equivalent cashback on orders</Text>
             </View>
             <View style={styles.benefitRow}>
               <CheckCircle2 size={14} color={THEME.colors.success} style={styles.benefitIcon} />
-              <Text style={styles.benefitText}>Exclusive member offers & early sale access</Text>
+              <Text style={styles.benefitText}>Free Express Delivery on top brands</Text>
             </View>
           </View>
 
           {/* Footer Navigation */}
           <View style={styles.footer}>
-            <Text style={styles.footerText}>Already have an account? </Text>
-            <TouchableOpacity onPress={() => router.push("/login" as any)}>
-              <Text style={styles.footerLink}>Log In</Text>
+            <Text style={styles.footerText}>{"Don't have an account? "}</Text>
+            <TouchableOpacity onPress={() => router.push("/register" as any)}>
+              <Text style={styles.footerLink}>Sign Up</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -516,6 +372,15 @@ const styles = StyleSheet.create({
     marginTop: 4,
     fontWeight: "500",
   },
+  forgotPasswordContainer: {
+    alignSelf: "flex-end",
+    marginBottom: THEME.spacing.lg,
+  },
+  forgotPasswordText: {
+    fontSize: 13,
+    color: THEME.colors.primary,
+    fontWeight: "600",
+  },
   submitButton: {
     backgroundColor: THEME.colors.primary,
     borderRadius: 12,
@@ -527,8 +392,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.2,
     shadowRadius: 8,
     elevation: 3,
-    marginBottom: THEME.spacing.lg,
-    marginTop: THEME.spacing.sm,
+    marginBottom: THEME.spacing.xl,
   },
   submitButtonText: {
     color: THEME.colors.textLight,
@@ -536,6 +400,7 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     letterSpacing: 0.5,
   },
+
   plusContainer: {
     backgroundColor: "#FAF5FF",
     borderWidth: 1,

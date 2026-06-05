@@ -26,14 +26,15 @@ import {
   Settings,
   LogOut,
 } from "lucide-react-native";
-import { THEME } from "../constants/theme";
-import { apiClient } from "../utils/api";
-import { API_ENDPOINTS } from "../constants/endpoints";
-import { useAuth } from "../context/AuthContext";
-import { getProductImage } from "../components/home/ProductCard";
-import { useToast } from "../components/Toast";
-import { MenuItem } from "../components/profile/MenuItem";
-import { useConfirm } from "../components/ConfirmDialog";
+import { THEME } from "../../constants/theme";
+import { apiClient } from "../../utils/api";
+import { API_ENDPOINTS } from "../../constants/endpoints";
+import { getProductImage } from "../../components/home/ProductCard";
+import { useToast } from "../../components/Toast";
+import { MenuItem } from "../../components/profile/MenuItem";
+import { useConfirm } from "../../components/ConfirmDialog";
+import { useAppDispatch, useAppSelector } from "../../redux/store";
+import { login as loginAction, logout as logoutAction } from "../../redux/action";
 
 type Address = {
   id: number;
@@ -46,7 +47,8 @@ type Address = {
 
 export default function ProfileScreen() {
   const router = useRouter();
-  const { authToken, login, logout } = useAuth();
+  const dispatch = useAppDispatch();
+  const { authToken } = useAppSelector((state) => state.auth);
   const { showToast } = useToast();
   const { showConfirm } = useConfirm();
 
@@ -116,11 +118,11 @@ export default function ProfileScreen() {
         const updatedUser = data.user || data.data || { name, email, age: Number(age) };
 
         if (authToken) {
-          await login(authToken, {
+          await dispatch(loginAction(authToken, {
             name: updatedUser.name || name,
             email: updatedUser.email || email,
             age: updatedUser.age || Number(age) || undefined,
-          });
+          }));
         }
 
         setPassword("");
@@ -145,7 +147,7 @@ export default function ProfileScreen() {
       cancelText: "Cancel",
       type: "danger",
       onConfirm: async () => {
-        await logout();
+        await dispatch(logoutAction());
         router.replace("/login" as any);
       },
     });

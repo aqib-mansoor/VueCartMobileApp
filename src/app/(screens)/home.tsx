@@ -12,17 +12,17 @@ import { Stack, useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Search, SlidersHorizontal, ShoppingBag, RefreshCw, X } from "lucide-react-native";
-import { THEME } from "../constants/theme";
+import { THEME } from "../../constants/theme";
 
 // Import custom hook and styles
-import { useHomeData } from "../hooks/useHomeData";
-import { styles } from "../styles/homeStyles";
+import { useHomeData } from "../../hooks/useHomeData";
+import { styles } from "../../styles/homeStyles";
 
 // Import custom modular components
-import { WelcomeHeader } from "../components/home/WelcomeHeader";
-import { AutoPromoSlider } from "../components/home/AutoPromoSlider";
-import { ProductCard } from "../components/home/ProductCard";
-import { ProductDetailModal } from "../components/home/ProductDetailModal";
+import { WelcomeHeader } from "../../components/home/WelcomeHeader";
+import { AutoPromoSlider } from "../../components/home/AutoPromoSlider";
+import { ProductCard } from "../../components/home/ProductCard";
+import { ProductDetailModal } from "../../components/home/ProductDetailModal";
 
 type Category = {
   id: number;

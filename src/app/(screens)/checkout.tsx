@@ -18,13 +18,16 @@ import {
   ChevronLeft, Plus, MapPin, Check, ArrowRight, Shield,
   Truck, CreditCard, Gift, PartyPopper, ShoppingBag, Clock, Star,
 } from "lucide-react-native";
-import { THEME } from "../constants/theme";
-import { apiClient } from "../utils/api";
-import { API_ENDPOINTS } from "../constants/endpoints";
-import { getProductImage } from "../components/home/ProductCard";
-import { useToast } from "../components/Toast";
-import { formatOrderNumber } from "../utils/orderUtils";
-import { OrderSuccessOverlay } from "../components/checkout/OrderSuccessOverlay";
+import { IMAGES } from "../../constants/images";
+import { THEME } from "../../constants/theme";
+import { apiClient } from "../../utils/api";
+import { API_ENDPOINTS } from "../../constants/endpoints";
+import { getProductImage } from "../../components/home/ProductCard";
+import { useToast } from "../../components/Toast";
+import { formatOrderNumber } from "../../utils/orderUtils";
+import { OrderSuccessOverlay } from "../../components/checkout/OrderSuccessOverlay";
+import { useAppDispatch, useAppSelector } from "../../redux/store";
+import { fetchCart } from "../../redux/action";
 
 type Address = { id: number; street: string; city: string; state: string; zip: string; country: string; };
 type CartItem = { cart_item_id: number; product_id: number; name: string; price: string | number; quantity: number; total_price: number; };
@@ -32,9 +35,6 @@ type CartItem = { cart_item_id: number; product_id: number; name: string; price:
 export default function CheckoutScreen() {
   const router = useRouter();
   const { showToast } = useToast();
-
-  const [cartItems, setCartItems] = useState<CartItem[]>([]);
-  const [totalAmount, setTotalAmount] = useState(0);
   const [addresses, setAddresses] = useState<Address[]>([]);
   const [selectedAddressId, setSelectedAddressId] = useState<number | null>(null);
   const [showNewAddressForm, setShowNewAddressForm] = useState(false);
@@ -49,20 +49,16 @@ export default function CheckoutScreen() {
   const [orderSuccess, setOrderSuccess] = useState(false);
   const [placedOrderId, setPlacedOrderId] = useState<number | null>(null);
 
+  const dispatch = useAppDispatch();
+  const cartItems = useAppSelector((state) => state.cart.items);
+  const totalAmount = useAppSelector((state) => state.cart.meta.grand_total);
+
   useEffect(() => { fetchCheckoutData(); }, []);
 
   const fetchCheckoutData = async () => {
     setIsLoading(true);
     try {
-      const cartRes = await apiClient.get(API_ENDPOINTS.CART);
-      if (cartRes.ok) {
-        const d = await cartRes.json();
-        const records = d.records || d;
-        const items = records.cart || records.data || d.cart || d.data || [];
-        setCartItems(items);
-        const meta = records.meta || d.meta;
-        setTotalAmount(Number(meta?.grand_total || items.reduce((a: number, i: CartItem) => a + i.quantity * Number(i.price), 0)));
-      }
+      await dispatch(fetchCart());
       const addrRes = await apiClient.get(API_ENDPOINTS.ADDRESSES);
       if (addrRes.ok) {
         const d = await addrRes.json();
@@ -117,6 +113,7 @@ export default function CheckoutScreen() {
         const d = await res.json();
         setPlacedOrderId(d.order?.id || d.data?.id);
         setOrderSuccess(true);
+        dispatch(fetchCart());
       } else {
         const e = await res.json().catch(() => ({}));
         showToast({ message: e.message || "Failed to place order", type: "error" });
@@ -263,7 +260,7 @@ export default function CheckoutScreen() {
                   <Image
                     source={{ uri: getProductImage(item.name) }}
                     style={s.orderItemImg}
-                    defaultSource={require("../../assets/images/icon.png")}
+                    defaultSource={IMAGES.placeholder}
                   />
                   <View style={{ flex: 1 }}>
                     <Text style={s.orderItemName} numberOfLines={2}>{item.name}</Text>

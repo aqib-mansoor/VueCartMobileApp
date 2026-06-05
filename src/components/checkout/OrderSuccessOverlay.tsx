@@ -4,6 +4,7 @@ import { Check, ShoppingBag, Truck, Gift, CheckCircle } from "lucide-react-nativ
 import { StatusBar } from "expo-status-bar";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { THEME } from "../../constants/theme";
+import { IMAGES } from "../../constants/images";
 import { getProductImage } from "../home/ProductCard";
 import { formatOrderNumber } from "../../utils/orderUtils";
 
@@ -122,7 +123,7 @@ export const OrderSuccessOverlay: React.FC<OrderSuccessOverlayProps> = ({
               <Image
                 source={{ uri: getProductImage(item.name) }}
                 style={s.successItemImg}
-                defaultSource={require("../../../assets/images/icon.png")}
+                defaultSource={IMAGES.placeholder}
               />
               <View style={{ flex: 1 }}>
                 <Text style={s.successItemName} numberOfLines={1}>{item.name}</Text>

@@ -11,13 +11,12 @@ import { Stack, useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { ChevronLeft, Heart, ShoppingBag } from "lucide-react-native";
-import { THEME } from "../constants/theme";
-import { apiClient } from "../utils/api";
-import { API_ENDPOINTS } from "../constants/endpoints";
-import { ProductCard } from "../components/home/ProductCard";
-import { ProductDetailModal } from "../components/home/ProductDetailModal";
-import { useToast } from "../components/Toast";
-import { useAuth } from "../context/AuthContext";
+import { THEME } from "../../constants/theme";
+import { ProductCard } from "../../components/home/ProductCard";
+import { ProductDetailModal } from "../../components/home/ProductDetailModal";
+import { useToast } from "../../components/Toast";
+import { useAppDispatch, useAppSelector } from "../../redux/store";
+import { fetchFavorites, toggleFavorite, addToCart } from "../../redux/action";
 
 type Product = {
   id: number;
@@ -31,72 +30,40 @@ type Product = {
 
 export default function FavoritesScreen() {
   const router = useRouter();
+  const dispatch = useAppDispatch();
   const { showToast } = useToast();
-  const { authToken } = useAuth();
 
-  const [favorites, setFavorites] = useState<Product[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isAddingToCart, setIsAddingToCart] = useState<number | null>(null);
+  const { authToken } = useAppSelector((state) => state.auth);
+  const favorites = useAppSelector((state) => state.favorites.items);
+  const isLoading = useAppSelector((state) => state.favorites.isLoading);
+  const isAddingToCart = useAppSelector((state) => state.cart.isAddingToCartId);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
 
   useEffect(() => {
     if (authToken) {
-      fetchFavorites();
-    } else {
-      setIsLoading(false);
+      dispatch(fetchFavorites());
     }
-  }, [authToken]);
-
-  const fetchFavorites = async () => {
-    setIsLoading(true);
-    try {
-      const res = await apiClient.get(API_ENDPOINTS.FAVORITES);
-      if (res.ok) {
-        const data = await res.json();
-        const favList = data.records || data.favorites || data.data || [];
-        // Map to extract nested product properties
-        const products = favList.map((fav: any) => fav.product).filter(Boolean);
-        setFavorites(products);
-      }
-    } catch (err) {
-      console.error("Error fetching favorites list:", err);
-      showToast({ message: "Failed to load favorites", type: "error" });
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  }, [authToken, dispatch]);
 
   const handleToggleFavorite = async (productId: number) => {
-    // Pessimistically remove item from UI list
-    setFavorites(prev => prev.filter(p => p.id !== productId));
     try {
-      const res = await apiClient.delete(`${API_ENDPOINTS.FAVORITES}/${productId}`);
-      if (res.ok) {
-        showToast({ message: "Removed from favorites", type: "info" });
+      const res = await dispatch(toggleFavorite(productId));
+      if (res.action === "added") {
+        showToast({ message: "Added to favorites! ❤️", type: "success" });
       } else {
-        showToast({ message: "Failed to remove from favorites", type: "error" });
-        fetchFavorites();
+        showToast({ message: "Removed from favorites", type: "info" });
       }
-    } catch {
-      showToast({ message: "Network error", type: "error" });
-      fetchFavorites();
+    } catch (err: any) {
+      showToast({ message: err || "Failed to update favorites", type: "error" });
     }
   };
 
   const handleAddToCart = async (productId: number) => {
-    setIsAddingToCart(productId);
     try {
-      const res = await apiClient.post(API_ENDPOINTS.CART, { product_id: productId, quantity: 1 });
-      if (res.ok) {
-        showToast({ message: "Added to cart! 🎉", type: "success" });
-      } else {
-        const data = await res.json();
-        showToast({ message: data.message || "Failed to add to cart", type: "error" });
-      }
-    } catch (err) {
-      showToast({ message: "Network connection error", type: "error" });
-    } finally {
-      setIsAddingToCart(null);
+      await dispatch(addToCart(productId, 1));
+      showToast({ message: "Added to cart! 🎉", type: "success" });
+    } catch (err: any) {
+      showToast({ message: err || "Failed to add to cart", type: "error" });
     }
   };
 

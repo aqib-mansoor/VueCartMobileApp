@@ -2,6 +2,7 @@ import React from "react";
 import { StyleSheet, View, Text, Image, TouchableOpacity } from "react-native";
 import { Trash2, Plus, Minus, Truck } from "lucide-react-native";
 import { THEME } from "../../constants/theme";
+import { IMAGES } from "../../constants/images";
 import { getProductImage } from "../home/ProductCard";
 
 type CartItem = {
@@ -43,7 +44,7 @@ export const CartItemRow: React.FC<CartItemRowProps> = ({
           source={{ uri: img }}
           style={s.productImg}
           resizeMode="cover"
-          defaultSource={require("../../../assets/images/icon.png")}
+          defaultSource={IMAGES.placeholder}
         />
         <View style={s.itemInfo}>
           <Text style={s.itemName} numberOfLines={2}>{item.name}</Text>
