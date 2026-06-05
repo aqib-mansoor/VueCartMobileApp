@@ -215,12 +215,22 @@ export const fetchOrders = (showLoading = true) => async (dispatch: any) => {
   }
   try {
     const res = await apiClient.get(API_ENDPOINTS.ORDERS);
-    if (res.ok) {
-      const d = await res.json();
-      const list = d.records || d.orders || d.data || [];
-      dispatch(setOrders(list));
-      return list;
+    // Read as text first so we can diagnose non-JSON server responses
+    const rawText = await res.text();
+    if (!res.ok) {
+      console.warn("[fetchOrders] Non-OK response:", res.status, rawText.slice(0, 300));
+      return;
     }
+    let d: any;
+    try {
+      d = JSON.parse(rawText);
+    } catch (parseErr) {
+      console.error("[fetchOrders] JSON parse failed. Raw response:", rawText.slice(0, 500));
+      return;
+    }
+    const list = d.records || d.orders || d.data || [];
+    dispatch(setOrders(list));
+    return list;
   } catch (err) {
     console.error("Failed to fetch orders in Redux thunk", err);
   } finally {

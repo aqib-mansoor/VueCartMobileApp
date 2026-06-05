@@ -56,15 +56,17 @@ export const apiClient = {
 
     try {
       const response = await fetch(url, fetchOptions);
-      
-      // Clone response to log content without exhausting stream
-      const responseClone = response.clone();
-      let responseData = null;
+
+      // Use two separate clones: one for JSON attempt, one for text fallback.
+      // The original `response` stream is NEVER read here so the caller can safely use it.
+      let responseData: any = null;
       try {
-        responseData = await responseClone.json();
+        const jsonClone = response.clone();
+        responseData = await jsonClone.json();
       } catch {
         try {
-          responseData = await responseClone.text();
+          const textClone = response.clone();
+          responseData = await textClone.text();
         } catch {}
       }
 
