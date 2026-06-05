@@ -42,9 +42,9 @@ export default function FavoritesScreen() {
 
   useEffect(() => {
     if (authToken) {
-      dispatch(fetchFavorites());
+      dispatch(fetchFavorites(favorites.length === 0));
     }
-  }, [authToken, dispatch]);
+  }, [authToken, dispatch, favorites.length]);
 
   const handleToggleFavorite = async (productId: number) => {
     try {

@@ -58,8 +58,8 @@ export const useHomeData = () => {
     fetchCategories();
     fetchProducts(1, true);
     if (authToken) {
-      dispatch(fetchCart());
-      dispatch(fetchFavorites());
+      dispatch(fetchCart(false));
+      dispatch(fetchFavorites(false));
     }
   }, [authToken, dispatch]);
 

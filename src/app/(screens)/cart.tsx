@@ -52,8 +52,8 @@ export default function CartScreen() {
   const [wipeAnim] = useState(new Animated.Value(1));
 
   useEffect(() => {
-    dispatch(fetchCart());
-  }, [dispatch]);
+    dispatch(fetchCart(cartItems.length === 0));
+  }, [dispatch, cartItems.length]);
 
   const updateQuantity = async (itemId: number, newQty: number, currentQty: number) => {
     if (newQty < 1) { handleRemoveItem(itemId); return; }

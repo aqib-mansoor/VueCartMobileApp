@@ -78,7 +78,7 @@ export default function ProfileScreen() {
 
   useEffect(() => {
     fetchProfileData();
-    dispatch(fetchFavorites());
+    dispatch(fetchFavorites(false));
   }, [dispatch]);
 
   const fetchProfileData = async () => {
