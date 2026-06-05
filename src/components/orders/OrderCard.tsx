@@ -32,7 +32,7 @@ type OrderCardProps = {
   isExpanded: boolean;
   onToggleExpand: () => void;
   onCancelOrder: (orderId: number) => void;
-  onBuyAgain: () => void;
+  onBuyAgain: (productId?: number) => void;
   onRateProduct: (productId: number, productName: string) => void;
   statusConfig: Record<string, { bg: string; text: string; border: string; label: string; Icon: any }>;
 };
@@ -200,7 +200,7 @@ export const OrderCard: React.FC<OrderCardProps> = ({
                 </View>
                 {isCompleted && (
                   item.is_reviewed ? (
-                    <View style={[s.reviewBtn, { backgroundColor: "#F0FDF4", borderColor: "#DCFCE7" }]}>
+                    <View style={[s.reviewBtn, { backgroundColor: "#F0FDF4", borderColor: "#DCFCE7", justifyContent: "center" }]}>
                       <Text style={[s.reviewBtnText, { color: "#16A34A" }]}>Rated</Text>
                     </View>
                   ) : (
@@ -238,7 +238,13 @@ export const OrderCard: React.FC<OrderCardProps> = ({
               {isCompleted && (
                 <TouchableOpacity
                   style={s.buyAgainBtn}
-                  onPress={onBuyAgain}
+                  onPress={() => {
+                    if (order.items && order.items.length === 1) {
+                      onBuyAgain(order.items[0].product_id);
+                    } else {
+                      onBuyAgain(undefined);
+                    }
+                  }}
                   activeOpacity={0.8}
                 >
                   <RotateCcw size={13} color="#FFF" />

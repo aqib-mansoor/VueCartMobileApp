@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useRouter } from "expo-router";
+import { useRouter, useLocalSearchParams } from "expo-router";
 import { apiClient } from "../utils/api";
 import { API_ENDPOINTS } from "../constants/endpoints";
 import { ROUTES } from "../constants/routes";
@@ -52,6 +52,29 @@ export const useHomeData = () => {
 
   // Selected Product Detail Modal state
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+
+  const { openProductId } = useLocalSearchParams<{ openProductId?: string }>();
+
+  useEffect(() => {
+    if (openProductId) {
+      const fetchAndSelectProduct = async () => {
+        try {
+          const res = await apiClient.get(`${API_ENDPOINTS.PRODUCTS}/${openProductId}`);
+          if (res.ok) {
+            const data = await res.json();
+            const prod = data.records || data.product || data.data;
+            if (prod) {
+              setSelectedProduct(prod);
+              router.setParams({ openProductId: undefined } as any);
+            }
+          }
+        } catch (e) {
+          console.warn("Failed to fetch product for buy again:", e);
+        }
+      };
+      fetchAndSelectProduct();
+    }
+  }, [openProductId]);
 
   // Initial Data Loading
   useEffect(() => {

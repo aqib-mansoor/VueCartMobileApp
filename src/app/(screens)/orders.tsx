@@ -180,8 +180,17 @@ export default function OrdersScreen() {
     }
   };
 
+  const matchTab = (status: string, tab: string) => {
+    const s = status.toLowerCase();
+    const t = tab.toLowerCase();
+    if (t === "all") return true;
+    if (t === "completed") return s === "completed" || s === "delivered";
+    if (t === "pending") return s === "pending" || s === "processing" || s === "shipped";
+    return s === t;
+  };
+
   const filtered = orders.filter(o => {
-    const tabOk = activeTab === "All" || o.status.toLowerCase() === activeTab.toLowerCase();
+    const tabOk = matchTab(o.status, activeTab);
     const formattedNum = formatOrderNumber(o.id, o.created_at).toLowerCase();
     const searchOk =
       !searchQuery ||
@@ -233,9 +242,7 @@ export default function OrdersScreen() {
       <View style={s.tabsContainer}>
         {TABS.map(tab => {
           const active = tab === activeTab;
-          const count = tab === "All"
-            ? orders.length
-            : orders.filter(o => o.status.toLowerCase() === tab.toLowerCase()).length;
+          const count = orders.filter(o => matchTab(o.status, tab)).length;
           return (
             <TouchableOpacity
               key={tab}
@@ -285,7 +292,13 @@ export default function OrdersScreen() {
               isExpanded={expandedOrders.has(order.id)}
               onToggleExpand={() => toggleExpand(order.id)}
               onCancelOrder={handleCancelOrder}
-              onBuyAgain={() => router.push(ROUTES.HOME as any)}
+              onBuyAgain={(productId) => {
+                if (productId) {
+                  router.push({ pathname: ROUTES.HOME, params: { openProductId: productId } } as any);
+                } else {
+                  router.push(ROUTES.HOME as any);
+                }
+              }}
               onRateProduct={openReviewModal}
               statusConfig={STATUS_CONFIG}
             />
