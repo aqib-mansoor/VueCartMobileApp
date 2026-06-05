@@ -63,7 +63,7 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
       const res = await apiClient.get(`${API_ENDPOINTS.PRODUCTS}/${productId}/reviews`);
       if (res.ok) {
         const data = await res.json();
-        setReviews(data.reviews || data.data || []);
+        setReviews(data.reviews || data.data || data.records || []);
       }
     } catch (e) {
       console.error("Error fetching product reviews:", e);
@@ -148,7 +148,7 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
             <View style={styles.starsGroup}>
               <Text style={styles.starIcon}>★</Text>
               <Text style={styles.ratingNumber}>{rating}</Text>
-              <Text style={styles.reviewsCount}>({(product.id * 12) % 180 + 15} reviews)</Text>
+              <Text style={styles.reviewsCount}>({reviews.length} reviews)</Text>
             </View>
             <View style={styles.dividerDot} />
             <Text style={styles.detailSoldCount}>{soldCount}+ items sold</Text>
@@ -219,7 +219,7 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
                 ))}
               </View>
             )}
-            {reviews.length > 2 && (
+            {reviews.length > 0 && (
               <TouchableOpacity
                 style={styles.seeAllReviewsBtn}
                 onPress={() => setShowAllReviewsModal(true)}
