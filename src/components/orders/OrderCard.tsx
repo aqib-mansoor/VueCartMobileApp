@@ -122,9 +122,9 @@ export const OrderCard: React.FC<OrderCardProps> = ({
                 {[0, 1, 2, 3].map((stepIdx) => {
                   const steps = [
                     { label: "Ordered", reached: true },
-                    { label: "Packed", reached: stKey === "processing" || stKey === "completed" },
-                    { label: "Shipped", reached: stKey === "completed" },
-                    { label: "Delivered", reached: stKey === "completed" }
+                    { label: "Packed", reached: stKey === "processing" || stKey === "shipped" || stKey === "delivered" || stKey === "completed" },
+                    { label: "Shipped", reached: stKey === "shipped" || stKey === "delivered" || stKey === "completed" },
+                    { label: "Delivered", reached: stKey === "delivered" || stKey === "completed" }
                   ];
                   const step = steps[stepIdx];
                   const activeColor = THEME.colors.primary;
@@ -156,9 +156,9 @@ export const OrderCard: React.FC<OrderCardProps> = ({
                 {["Ordered", "Packed", "Shipped", "Delivered"].map((lbl, sIdx) => {
                   const steps = [
                     { reached: true },
-                    { reached: stKey === "processing" || stKey === "completed" },
-                    { reached: stKey === "completed" },
-                    { reached: stKey === "completed" }
+                    { reached: stKey === "processing" || stKey === "shipped" || stKey === "delivered" || stKey === "completed" },
+                    { reached: stKey === "shipped" || stKey === "delivered" || stKey === "completed" },
+                    { reached: stKey === "delivered" || stKey === "completed" }
                   ];
                   const reached = steps[sIdx].reached;
                   return (
