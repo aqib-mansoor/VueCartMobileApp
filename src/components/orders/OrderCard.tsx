@@ -15,6 +15,7 @@ type OrderItem = {
     name: string;
     price: string | number;
   };
+  is_reviewed?: boolean;
 };
 
 type Order = {
@@ -50,7 +51,7 @@ export const OrderCard: React.FC<OrderCardProps> = ({
 }) => {
   const stKey = order.status.toLowerCase();
   const st = statusConfig[stKey] || statusConfig.pending;
-  const isCompleted = stKey === "completed";
+  const isCompleted = stKey === "completed" || stKey === "delivered";
   const isPending = stKey === "pending";
   const orderNum = formatOrderNumber(order.id, order.created_at);
 
@@ -198,14 +199,20 @@ export const OrderCard: React.FC<OrderCardProps> = ({
                   </Text>
                 </View>
                 {isCompleted && (
-                  <TouchableOpacity
-                    style={s.reviewBtn}
-                    onPress={() => onRateProduct(item.product_id, itemName)}
-                    activeOpacity={0.8}
-                  >
-                    <Star size={13} color={THEME.colors.primary} fill={THEME.colors.primary} />
-                    <Text style={s.reviewBtnText}>Rate</Text>
-                  </TouchableOpacity>
+                  item.is_reviewed ? (
+                    <View style={[s.reviewBtn, { backgroundColor: "#F0FDF4", borderColor: "#DCFCE7" }]}>
+                      <Text style={[s.reviewBtnText, { color: "#16A34A" }]}>Rated</Text>
+                    </View>
+                  ) : (
+                    <TouchableOpacity
+                      style={s.reviewBtn}
+                      onPress={() => onRateProduct(item.product_id, itemName)}
+                      activeOpacity={0.8}
+                    >
+                      <Star size={13} color={THEME.colors.primary} fill={THEME.colors.primary} />
+                      <Text style={s.reviewBtnText}>Rate</Text>
+                    </TouchableOpacity>
+                  )
                 )}
               </View>
             );

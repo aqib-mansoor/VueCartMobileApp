@@ -11,7 +11,7 @@ import {
 import { Stack, useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { ChevronLeft, Package, Search, ShoppingBag, Clock, CheckCircle, RotateCcw, XCircle, X } from "lucide-react-native";
+import { ChevronLeft, Package, Search, ShoppingBag, Clock, CheckCircle, RotateCcw, XCircle, X, Truck } from "lucide-react-native";
 import { THEME } from "../../constants/theme";
 import { apiClient } from "../../utils/api";
 import { API_ENDPOINTS } from "../../constants/endpoints";
@@ -49,7 +49,9 @@ const TABS = ["All", "Pending", "Completed", "Cancelled"];
 
 const STATUS_CONFIG: Record<string, { bg: string; text: string; border: string; label: string; Icon: any }> = {
   pending:    { bg: "#FEF9C3", text: "#A16207", border: "#FCD34D", label: "Pending",    Icon: Clock },
-  processing: { bg: "#DBEAFE", text: "#1D4ED8", border: "#93C5FD", label: "Processing", Icon: Package },
+  processing: { bg: "#FEF3C7", text: "#D97706", border: "#FDE68A", label: "Processing", Icon: Package },
+  shipped:    { bg: "#E0F2FE", text: "#0369A1", border: "#7DD3FC", label: "Shipped",    Icon: Truck },
+  delivered:  { bg: "#DCFCE7", text: "#15803D", border: "#86EFAC", label: "Delivered",  Icon: CheckCircle },
   completed:  { bg: "#DCFCE7", text: "#15803D", border: "#86EFAC", label: "Completed",  Icon: CheckCircle },
   cancelled:  { bg: "#FEE2E2", text: "#DC2626", border: "#FCA5A5", label: "Cancelled",  Icon: XCircle },
 };
@@ -79,6 +81,13 @@ export default function OrdersScreen() {
 
   useEffect(() => {
     dispatch(fetchOrders(reduxOrders.length === 0));
+
+    // Silently poll in the background every 5 seconds for admin updates
+    const interval = setInterval(() => {
+      dispatch(fetchOrders(false));
+    }, 5000);
+
+    return () => clearInterval(interval);
   }, [dispatch, reduxOrders.length]);
 
   useEffect(() => {
