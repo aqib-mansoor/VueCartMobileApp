@@ -3,7 +3,7 @@ import { useRouter, useLocalSearchParams } from "expo-router";
 import { apiClient } from "../utils/api";
 import { API_ENDPOINTS } from "../constants/endpoints";
 import { ROUTES } from "../constants/routes";
-import { useToast } from "../components/Toast";
+import { useToast } from "../components/ui/Toast";
 import { useAppDispatch, useAppSelector } from "../redux/store";
 import { fetchCart, addToCart, fetchFavorites, toggleFavorite, logout as logoutAction } from "../redux/action";
 

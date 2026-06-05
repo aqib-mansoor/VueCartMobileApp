@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useCallback, useRef } from "react";
 import { StyleSheet, View, Text, Modal, TouchableOpacity, Animated, ActivityIndicator } from "react-native";
 import { AlertCircle, HelpCircle, LogOut, Trash2, CheckCircle2, ShieldAlert } from "lucide-react-native";
-import { THEME } from "../constants/theme";
+import { THEME } from "../../constants/theme";
 
 interface ConfirmConfig {
   title: string;

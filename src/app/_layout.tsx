@@ -1,7 +1,7 @@
 import React, { useEffect } from "react";
 import { Stack, useRouter, useSegments } from "expo-router";
-import { ToastProvider } from "../components/Toast";
-import { ConfirmProvider } from "../components/ConfirmDialog";
+import { ToastProvider } from "../components/ui/Toast";
+import { ConfirmProvider } from "../components/ui/ConfirmDialog";
 import { Provider } from "react-redux";
 import { store, useAppDispatch, useAppSelector } from "../redux/store";
 import { loadAuth } from "../redux/action";

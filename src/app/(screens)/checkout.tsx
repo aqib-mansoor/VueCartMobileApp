@@ -22,7 +22,7 @@ import { THEME } from "../../constants/theme";
 import { apiClient } from "../../utils/api";
 import { API_ENDPOINTS } from "../../constants/endpoints";
 import { getProductImage } from "../../components/home/ProductCard";
-import { useToast } from "../../components/Toast";
+import { useToast } from "../../components/ui/Toast";
 import { formatOrderNumber } from "../../utils/orderUtils";
 import { OrderSuccessOverlay } from "../../components/checkout/OrderSuccessOverlay";
 import { useAppDispatch, useAppSelector } from "../../redux/store";

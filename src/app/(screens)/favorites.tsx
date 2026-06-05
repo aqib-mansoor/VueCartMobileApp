@@ -14,7 +14,7 @@ import { ChevronLeft, Heart, ShoppingBag } from "lucide-react-native";
 import { THEME } from "../../constants/theme";
 import { ProductCard } from "../../components/home/ProductCard";
 import { ProductDetailModal } from "../../components/home/ProductDetailModal";
-import { useToast } from "../../components/Toast";
+import { useToast } from "../../components/ui/Toast";
 import { useAppDispatch, useAppSelector } from "../../redux/store";
 import { fetchFavorites, toggleFavorite, addToCart } from "../../redux/action";
 import { ROUTES } from "../../constants/routes";
