@@ -70,18 +70,28 @@ export const apiClient = {
         }
       }
 
-      // Use two separate clones: one for JSON attempt, one for text fallback.
-      // The original `response` stream is NEVER read here so the caller can safely use it.
+      // Pre-read response stream to avoid React Native clone/stream bugs
       let responseData: any = null;
+      let rawText = "";
       try {
-        const jsonClone = response.clone();
-        responseData = await jsonClone.json();
-      } catch {
+        rawText = await response.text();
         try {
-          const textClone = response.clone();
-          responseData = await textClone.text();
-        } catch {}
+          responseData = JSON.parse(rawText);
+        } catch {
+          responseData = rawText;
+        }
+      } catch (err) {
+        console.warn("Failed to read response body", err);
       }
+
+      // Override methods so callers can safely read body multiple times
+      response.json = async () => {
+        if (typeof responseData === "object" && responseData !== null) {
+          return responseData;
+        }
+        return JSON.parse(rawText);
+      };
+      response.text = async () => rawText;
 
       apiLogger.logResponse(method, endpoint, response.status, startTime, responseData);
       return response;
