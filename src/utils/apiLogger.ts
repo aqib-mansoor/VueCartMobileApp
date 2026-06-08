@@ -9,14 +9,15 @@ const DEFAULT_BLACKLIST = [
   "/categories",
   "/products",
   "/orders",
-  "/favorites"
+  "/favorites",
+  "/addresses",
+  "/profile"
 ];
 
 // Whitelisted endpoints (only endpoints matching these patterns will be logged if not in blacklist)
 const DEFAULT_WHITELIST = [
   "/cart",
-  "/addresses",
-  "/profile",
+  
 ];
 
 export class ApiLogger {
