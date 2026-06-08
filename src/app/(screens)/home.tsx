@@ -24,6 +24,7 @@ import { WelcomeHeader } from "../../components/home/WelcomeHeader";
 import { AutoPromoSlider } from "../../components/home/AutoPromoSlider";
 import { ProductCard } from "../../components/home/ProductCard";
 import { ProductDetailModal } from "../../components/home/ProductDetailModal";
+import { ActiveOrderTracker } from "../../components/home/ActiveOrderTracker";
 
 type Category = {
   id: number;
@@ -50,6 +51,7 @@ export default function HomeScreen() {
     cartCount,
     selectedProduct,
     setSelectedProduct,
+    activeOrder,
     handleSelectCategory,
     handleAddToCart,
     handleToggleFavorite,
@@ -227,6 +229,12 @@ export default function HomeScreen() {
         onAddToCart={handleAddToCart}
         isFavorited={selectedProduct ? favoritedProductIds.has(selectedProduct.id) : false}
         onToggleFavorite={handleToggleFavorite}
+      />
+
+      {/* Sticky Active Order Tracker (like Foodpanda) */}
+      <ActiveOrderTracker
+        order={activeOrder}
+        onPress={() => router.push(ROUTES.ORDERS as any)}
       />
     </SafeAreaView>
   );

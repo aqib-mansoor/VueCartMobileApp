@@ -52,8 +52,37 @@ export const useHomeData = () => {
 
   // Selected Product Detail Modal state
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [activeOrder, setActiveOrder] = useState<any | null>(null);
 
   const { openProductId } = useLocalSearchParams<{ openProductId?: string }>();
+
+  // Background polling for active orders
+  useEffect(() => {
+    if (!authToken) {
+      setActiveOrder(null);
+      return;
+    }
+    const checkActiveOrders = async () => {
+      try {
+        const res = await apiClient.get(`${API_ENDPOINTS.ORDERS}?nocache=${Date.now()}`);
+        if (res.ok) {
+          const d = await res.json();
+          const list = d.records || d.data || d || [];
+          if (Array.isArray(list)) {
+            const active = list.find((o: any) =>
+              ["pending", "processing", "shipped"].includes(o.status?.toLowerCase())
+            );
+            setActiveOrder(active || null);
+          }
+        }
+      } catch (err) {
+        console.warn("Failed to check active orders:", err);
+      }
+    };
+    checkActiveOrders();
+    const interval = setInterval(checkActiveOrders, 7000);
+    return () => clearInterval(interval);
+  }, [authToken]);
 
   useEffect(() => {
     if (openProductId) {
@@ -276,6 +305,7 @@ export const useHomeData = () => {
     cartCount,
     selectedProduct,
     setSelectedProduct,
+    activeOrder,
     handleSelectCategory,
     handleAddToCart,
     handleToggleFavorite,

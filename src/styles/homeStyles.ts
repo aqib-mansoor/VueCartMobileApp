@@ -7,7 +7,7 @@ export const styles = StyleSheet.create({
     backgroundColor: "#F5F3FF", // Very light purple
   },
   scrollContent: {
-    paddingBottom: 40,
+    paddingBottom: 100,
   },
   searchSection: {
     flexDirection: "row",
