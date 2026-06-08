@@ -1,4 +1,4 @@
-# VueCart Frontend 📱✨
+# VueCart Frontend 📱
 
 VueCart is a premium, state-of-the-art e-commerce mobile application built on top of **React Native** and **Expo SDK 56**. It features a modern design, file-based routing, global state management via Redux Toolkit, and a robust centralized API network layer with automatic response caching.
 
