@@ -57,6 +57,18 @@ export const apiClient = {
     try {
       const response = await fetch(url, fetchOptions);
 
+      // Handle 401 Unauthenticated globally
+      if (response.status === 401) {
+        try {
+          await AsyncStorage.removeItem("authToken");
+          await AsyncStorage.removeItem("user");
+          const { store } = require("@/redux/store");
+          store.dispatch({ type: "auth/CLEAR_AUTH" });
+        } catch (e) {
+          console.warn("Failed to clear auth on 401 response", e);
+        }
+      }
+
       // Use two separate clones: one for JSON attempt, one for text fallback.
       // The original `response` stream is NEVER read here so the caller can safely use it.
       let responseData: any = null;
