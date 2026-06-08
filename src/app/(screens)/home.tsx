@@ -25,6 +25,7 @@ import { AutoPromoSlider } from "../../components/home/AutoPromoSlider";
 import { ProductCard } from "../../components/home/ProductCard";
 import { ProductDetailModal } from "../../components/home/ProductDetailModal";
 import { ActiveOrderTracker } from "../../components/home/ActiveOrderTracker";
+import { ReviewModal } from "../../components/orders/ReviewModal";
 
 type Category = {
   id: number;
@@ -52,6 +53,16 @@ export default function HomeScreen() {
     selectedProduct,
     setSelectedProduct,
     activeOrder,
+    reviewPromptItem,
+    reviewRating,
+    reviewComment,
+    isAnonymous,
+    isSubmittingReview,
+    setReviewRating,
+    setComment,
+    setIsAnonymous,
+    handleDismissReviewPrompt,
+    handleSubmitReviewPrompt,
     handleSelectCategory,
     handleAddToCart,
     handleToggleFavorite,
@@ -235,6 +246,21 @@ export default function HomeScreen() {
       <ActiveOrderTracker
         order={activeOrder}
         onPress={() => router.push(ROUTES.ORDERS as any)}
+      />
+
+      {/* Dynamic Delivered Item Review Prompt Modal */}
+      <ReviewModal
+        visible={reviewPromptItem !== null}
+        onClose={handleDismissReviewPrompt}
+        productName={reviewPromptItem?.productName || ""}
+        rating={reviewRating}
+        setRating={setReviewRating}
+        comment={reviewComment}
+        setComment={setComment}
+        isAnonymous={isAnonymous}
+        setIsAnonymous={setIsAnonymous}
+        onSubmit={handleSubmitReviewPrompt}
+        isSubmitting={isSubmittingReview}
       />
     </SafeAreaView>
   );

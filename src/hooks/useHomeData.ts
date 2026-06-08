@@ -54,12 +54,21 @@ export const useHomeData = () => {
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [activeOrder, setActiveOrder] = useState<any | null>(null);
 
+  // Review Modal States for Delivered Items
+  const [reviewPromptItem, setReviewPromptItem] = useState<{ orderItemId: number; productId: number; productName: string } | null>(null);
+  const [dismissedReviewItemIds, setDismissedReviewItemIds] = useState<number[]>([]);
+  const [reviewRating, setReviewRating] = useState(0);
+  const [reviewComment, setReviewComment] = useState("");
+  const [isAnonymous, setIsAnonymous] = useState(false);
+  const [isSubmittingReview, setIsSubmittingReview] = useState(false);
+
   const { openProductId } = useLocalSearchParams<{ openProductId?: string }>();
 
-  // Background polling for active orders
+  // Background polling for active and recently delivered orders
   useEffect(() => {
     if (!authToken) {
       setActiveOrder(null);
+      setReviewPromptItem(null);
       return;
     }
     const checkActiveOrders = async () => {
@@ -69,10 +78,34 @@ export const useHomeData = () => {
           const d = await res.json();
           const list = d.records || d.data || d || [];
           if (Array.isArray(list)) {
+            // 1. Check for active orders
             const active = list.find((o: any) =>
               ["pending", "processing", "shipped"].includes(o.status?.toLowerCase())
             );
             setActiveOrder(active || null);
+
+            // 2. Check for delivered orders that have unreviewed items not yet dismissed
+            const deliveredOrders = list.filter((o: any) =>
+              ["delivered", "completed"].includes(o.status?.toLowerCase())
+            );
+            
+            let promptItemFound = null;
+            for (const order of deliveredOrders) {
+              if (order.items && Array.isArray(order.items)) {
+                const unreviewedItem = order.items.find((item: any) =>
+                  !item.is_reviewed && !dismissedReviewItemIds.includes(item.id)
+                );
+                if (unreviewedItem) {
+                  promptItemFound = {
+                    orderItemId: unreviewedItem.id,
+                    productId: unreviewedItem.product_id,
+                    productName: unreviewedItem.product?.name || unreviewedItem.name || "Product",
+                  };
+                  break;
+                }
+              }
+            }
+            setReviewPromptItem(promptItemFound);
           }
         }
       } catch (err) {
@@ -82,7 +115,45 @@ export const useHomeData = () => {
     checkActiveOrders();
     const interval = setInterval(checkActiveOrders, 7000);
     return () => clearInterval(interval);
-  }, [authToken]);
+  }, [authToken, dismissedReviewItemIds]);
+
+  const handleDismissReviewPrompt = () => {
+    if (reviewPromptItem) {
+      setDismissedReviewItemIds(prev => [...prev, reviewPromptItem.orderItemId]);
+      setReviewPromptItem(null);
+    }
+  };
+
+  const handleSubmitReviewPrompt = async () => {
+    if (!reviewPromptItem) return;
+    if (reviewRating === 0) {
+      showToast({ message: "Please select a star rating", type: "warning" });
+      return;
+    }
+    setIsSubmittingReview(true);
+    try {
+      const res = await apiClient.post(`${API_ENDPOINTS.PRODUCTS}/${reviewPromptItem.productId}/reviews`, {
+        rating: reviewRating,
+        comment: reviewComment,
+        order_item_id: reviewPromptItem.orderItemId,
+        is_anonymous: isAnonymous,
+      });
+      if (res.ok) {
+        showToast({ message: "Review submitted! Thank you 🌟", type: "success" });
+        setDismissedReviewItemIds(p => [...p, reviewPromptItem.orderItemId]);
+        setReviewPromptItem(null);
+        setReviewRating(0);
+        setReviewComment("");
+        setIsAnonymous(false);
+      } else {
+        showToast({ message: "Failed to submit review", type: "error" });
+      }
+    } catch {
+      showToast({ message: "Network error — try again", type: "error" });
+    } finally {
+      setIsSubmittingReview(false);
+    }
+  };
 
   useEffect(() => {
     if (openProductId) {
@@ -306,6 +377,16 @@ export const useHomeData = () => {
     selectedProduct,
     setSelectedProduct,
     activeOrder,
+    reviewPromptItem,
+    reviewRating,
+    reviewComment,
+    isAnonymous,
+    isSubmittingReview,
+    setReviewRating,
+    setComment: setReviewComment,
+    setIsAnonymous,
+    handleDismissReviewPrompt,
+    handleSubmitReviewPrompt,
     handleSelectCategory,
     handleAddToCart,
     handleToggleFavorite,
