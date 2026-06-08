@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   ScrollView,
   ActivityIndicator,
+  Dimensions,
 } from "react-native";
 import { Stack, useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
@@ -34,39 +35,56 @@ export default function FavoritesScreen() {
   const dispatch = useAppDispatch();
   const { showToast } = useToast();
 
-  const { authToken } = useAppSelector((state) => state.auth);
+  const [isLoading, setIsLoading] = useState(true);
   const favorites = useAppSelector((state) => state.favorites.items);
-  const isLoading = useAppSelector((state) => state.favorites.isLoading);
   const isAddingToCart = useAppSelector((state) => state.cart.isAddingToCartId);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
 
   useEffect(() => {
-    if (authToken) {
-      dispatch(fetchFavorites(favorites.length === 0));
-    }
-  }, [authToken, dispatch, favorites.length]);
+    const loadData = async () => {
+      setIsLoading(true);
+      await dispatch(fetchFavorites(true));
+      setIsLoading(false);
+    };
+    loadData();
+  }, [dispatch]);
 
   const handleToggleFavorite = async (productId: number) => {
     try {
-      const res = await dispatch(toggleFavorite(productId));
-      if (res.action === "added") {
-        showToast({ message: "Added to favorites! ❤️", type: "success" });
-      } else {
-        showToast({ message: "Removed from favorites", type: "info" });
-      }
+      await dispatch(toggleFavorite(productId));
+      showToast({ message: "Removed from favorites", type: "info" });
     } catch (err: any) {
       showToast({ message: err || "Failed to update favorites", type: "error" });
     }
   };
 
-  const handleAddToCart = async (productId: number) => {
-    try {
-      await dispatch(addToCart(productId, 1));
-      showToast({ message: "Added to cart! 🎉", type: "success" });
-    } catch (err: any) {
-      showToast({ message: err || "Failed to add to cart", type: "error" });
-    }
+  const handleAddToCart = (productId: number) => {
+    showToast({ message: "Added to cart! 🎉", type: "success" });
+    dispatch(addToCart(productId, 1)).catch((err: any) => {
+      showToast({ message: err?.message || "Failed to add to cart", type: "error" });
+    });
   };
+
+  const renderSkeletons = () => (
+    <ScrollView contentContainerStyle={[styles.scrollContent, { flexDirection: "row", flexWrap: "wrap", justifyContent: "space-between" }]}>
+      {[1, 2, 3, 4].map((i) => (
+        <View key={i} style={{
+          width: (Dimensions.get("window").width - THEME.spacing.lg * 3) / 2,
+          backgroundColor: "#FFFFFF",
+          borderRadius: 20,
+          padding: THEME.spacing.sm,
+          gap: THEME.spacing.sm,
+          marginBottom: THEME.spacing.md,
+          borderWidth: 1,
+          borderColor: "#E2E8F0",
+        }}>
+          <View style={{ width: "100%", height: 130, backgroundColor: "#E5E7EB", borderRadius: 16 }} />
+          <View style={{ width: "80%", height: 12, backgroundColor: "#E5E7EB", borderRadius: 6, marginTop: 4 }} />
+          <View style={{ width: "60%", height: 12, backgroundColor: "#E5E7EB", borderRadius: 6 }} />
+        </View>
+      ))}
+    </ScrollView>
+  );
 
   return (
     <SafeAreaView style={styles.container} edges={["top", "bottom"]}>
@@ -83,10 +101,7 @@ export default function FavoritesScreen() {
       </View>
 
       {isLoading && favorites.length === 0 ? (
-        <View style={styles.centerContainer}>
-          <ActivityIndicator size="large" color={THEME.colors.primary} />
-          <Text style={styles.loadingText}>Fetching favorites...</Text>
-        </View>
+        renderSkeletons()
       ) : favorites.length === 0 ? (
         <View style={styles.emptyContainer}>
           <View style={styles.emptyIconCircle}>

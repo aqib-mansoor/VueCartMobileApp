@@ -224,6 +224,31 @@ export default function ProfileScreen() {
     },
   ];
 
+  const renderSkeletons = () => (
+    <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+      {/* Hero Banner Skeleton */}
+      <View style={[styles.heroBanner, { backgroundColor: "#E2E8F0" }]}>
+        <View style={styles.heroGradient}>
+          <View style={[styles.largeAvatar, { backgroundColor: "#CBD5E1", borderColor: "#CBD5E1" }]} />
+          <View style={{ width: 120, height: 18, backgroundColor: "#CBD5E1", borderRadius: 4 }} />
+          <View style={{ width: 180, height: 12, backgroundColor: "#CBD5E1", borderRadius: 4, marginTop: 8 }} />
+        </View>
+      </View>
+      {/* Menu Card Skeletons */}
+      <View style={[styles.menuCard, { padding: 16, gap: 16 }]}>
+        {[1, 2, 3].map((i) => (
+          <View key={i} style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+            <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: "#E5E7EB" }} />
+            <View style={{ flex: 1, gap: 6 }}>
+              <View style={{ width: "40%", height: 14, backgroundColor: "#E5E7EB", borderRadius: 4 }} />
+              <View style={{ width: "60%", height: 10, backgroundColor: "#E5E7EB", borderRadius: 4 }} />
+            </View>
+          </View>
+        ))}
+      </View>
+    </ScrollView>
+  );
+
   return (
     <SafeAreaView style={styles.container} edges={["top", "bottom"]}>
       <Stack.Screen options={{ headerShown: false }} />
@@ -241,10 +266,7 @@ export default function ProfileScreen() {
       </View>
 
       {isLoading ? (
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={THEME.colors.primary} />
-          <Text style={styles.loadingText}>Fetching profile details...</Text>
-        </View>
+        renderSkeletons()
       ) : (
         <ScrollView
           contentContainerStyle={styles.scrollContent}

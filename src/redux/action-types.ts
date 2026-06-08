@@ -16,3 +16,7 @@ export const SET_FAVORITES_LOADING = "favorites/SET_FAVORITES_LOADING";
 // Orders action types
 export const SET_ORDERS = "orders/SET_ORDERS";
 export const SET_ORDERS_LOADING = "orders/SET_ORDERS_LOADING";
+
+// Cache action types
+export const SET_API_CACHE = "cache/SET_API_CACHE";
+export const CLEAR_API_CACHE = "cache/CLEAR_API_CACHE";

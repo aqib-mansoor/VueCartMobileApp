@@ -55,6 +55,30 @@ export const apiClient = {
     const startTime = Date.now();
     apiLogger.logRequest(method, endpoint, headers, options.body);
 
+    // Cache check for GET requests using Redux store
+    if (method === "GET") {
+      try {
+        const { store } = require("@/redux/store");
+        const cache = store.getState().cache.cache;
+        const cached = cache[url];
+        // Cache lifetime is 10 seconds to keep data fresh but avoid excessive network request calls
+        if (cached && Date.now() - cached.timestamp < 10000) {
+          const data = cached.data;
+          const cachedResponse = new Response(JSON.stringify(data), {
+            status: 200,
+            headers: new Headers({ "Content-Type": "application/json" }),
+          });
+          cachedResponse.json = async () => data;
+          cachedResponse.text = async () => JSON.stringify(data);
+
+          apiLogger.logResponse(method, endpoint, 200, startTime, data);
+          return cachedResponse;
+        }
+      } catch (e) {
+        // Redux store not loaded yet, proceed to fetch
+      }
+    }
+
     try {
       const response = await fetch(url, fetchOptions);
 
@@ -92,6 +116,29 @@ export const apiClient = {
         return JSON.parse(rawText);
       };
       response.text = async () => rawText;
+
+      // Save GET response data to Redux cache
+      if (method === "GET" && response.ok && responseData) {
+        try {
+          const { store } = require("@/redux/store");
+          store.dispatch({
+            type: "cache/SET_API_CACHE",
+            payload: { url, data: responseData, timestamp: Date.now() },
+          });
+        } catch (e) {
+          console.warn("Failed to write to Redux cache", e);
+        }
+      }
+
+      // Invalidate all GET cache on data mutation (POST, PUT, DELETE)
+      if (method !== "GET" && response.ok) {
+        try {
+          const { store } = require("@/redux/store");
+          store.dispatch({ type: "cache/CLEAR_API_CACHE" });
+        } catch (e) {
+          console.warn("Failed to clear Redux cache", e);
+        }
+      }
 
       apiLogger.logResponse(method, endpoint, response.status, startTime, responseData);
       return response;

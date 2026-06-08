@@ -209,17 +209,42 @@ export default function OrdersScreen() {
     return tabOk && searchOk;
   });
 
-  const formatDate = (d: string) =>
-    new Date(d).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
-
-  const STAR_LABELS = ["", "Terrible", "Bad", "Okay", "Good", "Excellent!"];
+  const renderSkeletons = () => (
+    <ScrollView contentContainerStyle={{ padding: 16, gap: 16 }}>
+      {[1, 2, 3].map((i) => (
+        <View key={i} style={{
+          backgroundColor: "#FFFFFF",
+          borderRadius: 20,
+          padding: 16,
+          borderWidth: 1,
+          borderColor: "#E2E8F0",
+          gap: 12,
+        }}>
+          <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
+            <View style={{ width: 120, height: 14, backgroundColor: "#E5E7EB", borderRadius: 4 }} />
+            <View style={{ width: 70, height: 20, backgroundColor: "#E5E7EB", borderRadius: 6 }} />
+          </View>
+          <View style={{ flexDirection: "row", gap: 12, alignItems: "center" }}>
+            <View style={{ width: 50, height: 50, backgroundColor: "#E5E7EB", borderRadius: 10 }} />
+            <View style={{ flex: 1, gap: 6 }}>
+              <View style={{ width: "70%", height: 12, backgroundColor: "#E5E7EB", borderRadius: 4 }} />
+              <View style={{ width: "40%", height: 10, backgroundColor: "#E5E7EB", borderRadius: 4 }} />
+            </View>
+          </View>
+          <View style={{ flexDirection: "row", justifyContent: "space-between", borderTopWidth: 1, borderTopColor: "#F1F5F9", paddingTop: 12, marginTop: 4 }}>
+            <View style={{ width: 80, height: 12, backgroundColor: "#E5E7EB", borderRadius: 4 }} />
+            <View style={{ width: 60, height: 12, backgroundColor: "#E5E7EB", borderRadius: 4 }} />
+          </View>
+        </View>
+      ))}
+    </ScrollView>
+  );
 
   return (
     <SafeAreaView style={s.container} edges={["top", "bottom"]}>
       <Stack.Screen options={{ headerShown: false }} />
       <StatusBar style="dark" />
 
-      {/* Header */}
       <View style={s.header}>
         <TouchableOpacity onPress={() => router.back()} style={s.backBtn} activeOpacity={0.7}>
           <ChevronLeft size={24} color={THEME.colors.textPrimary} />
@@ -228,7 +253,6 @@ export default function OrdersScreen() {
         <View style={{ width: 32 }} />
       </View>
 
-      {/* Search */}
       <View style={s.searchRow}>
         <View style={s.searchBox}>
           <Search size={15} color={THEME.colors.textMuted} />
@@ -247,7 +271,6 @@ export default function OrdersScreen() {
         </View>
       </View>
 
-      {/* Filter Tabs */}
       <View style={s.tabsContainer}>
         {TABS.map(tab => {
           const active = tab === activeTab;
@@ -274,10 +297,7 @@ export default function OrdersScreen() {
       </View>
 
       {reduxLoading && orders.length === 0 ? (
-        <View style={s.loadingCont}>
-          <ActivityIndicator size="large" color={THEME.colors.primary} />
-          <Text style={s.loadingText}>Loading your orders...</Text>
-        </View>
+        renderSkeletons()
       ) : filtered.length === 0 ? (
         <View style={s.emptyCont}>
           <View style={s.emptyIcon}><Package size={44} color={THEME.colors.textMuted} /></View>

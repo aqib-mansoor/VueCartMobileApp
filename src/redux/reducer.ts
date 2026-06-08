@@ -179,11 +179,44 @@ function ordersReducer(state = initialOrdersState, action: any): OrdersState {
   }
 }
 
+// Cache Reducer
+interface CacheState {
+  cache: Record<string, { data: any; timestamp: number }>;
+}
+
+const initialCacheState: CacheState = {
+  cache: {},
+};
+
+function cacheReducer(state = initialCacheState, action: any): CacheState {
+  switch (action.type) {
+    case types.SET_API_CACHE:
+      return {
+        ...state,
+        cache: {
+          ...state.cache,
+          [action.payload.url]: {
+            data: action.payload.data,
+            timestamp: action.payload.timestamp,
+          },
+        },
+      };
+    case types.CLEAR_API_CACHE:
+      return {
+        ...state,
+        cache: {},
+      };
+    default:
+      return state;
+  }
+}
+
 export const rootReducer = combineReducers({
   auth: authReducer,
   cart: cartReducer,
   favorites: favoritesReducer,
   orders: ordersReducer,
+  cache: cacheReducer,
 });
 
 export type RootState = ReturnType<typeof rootReducer>;

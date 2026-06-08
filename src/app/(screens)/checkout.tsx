@@ -145,7 +145,37 @@ export default function CheckoutScreen() {
     );
   }
 
+
   // ─── CHECKOUT SCREEN ─────────────────────────────────────────
+  const renderSkeletons = () => (
+    <ScrollView contentContainerStyle={{ padding: 16, gap: 16 }}>
+      {/* Address Card Skeleton */}
+      <View style={{ backgroundColor: "#FFFFFF", borderRadius: 20, padding: 16, borderWidth: 1, borderColor: "#E2E8F0", gap: 10 }}>
+        <View style={{ width: 120, height: 16, backgroundColor: "#E5E7EB", borderRadius: 4 }} />
+        <View style={{ width: "90%", height: 12, backgroundColor: "#E5E7EB", borderRadius: 4 }} />
+        <View style={{ width: "60%", height: 12, backgroundColor: "#E5E7EB", borderRadius: 4 }} />
+      </View>
+      {/* Order Items Skeleton */}
+      <View style={{ backgroundColor: "#FFFFFF", borderRadius: 20, padding: 16, borderWidth: 1, borderColor: "#E2E8F0", gap: 12 }}>
+        <View style={{ width: 100, height: 16, backgroundColor: "#E5E7EB", borderRadius: 4 }} />
+        {[1, 2].map((x) => (
+          <View key={x} style={{ flexDirection: "row", gap: 10, alignItems: "center" }}>
+            <View style={{ width: 40, height: 40, backgroundColor: "#E5E7EB", borderRadius: 8 }} />
+            <View style={{ flex: 1, gap: 6 }}>
+              <View style={{ width: "60%", height: 12, backgroundColor: "#E5E7EB", borderRadius: 4 }} />
+              <View style={{ width: "30%", height: 10, backgroundColor: "#E5E7EB", borderRadius: 4 }} />
+            </View>
+          </View>
+        ))}
+      </View>
+      {/* Payment Details Skeleton */}
+      <View style={{ backgroundColor: "#FFFFFF", borderRadius: 20, padding: 16, borderWidth: 1, borderColor: "#E2E8F0", gap: 10 }}>
+        <View style={{ width: 140, height: 16, backgroundColor: "#E5E7EB", borderRadius: 4 }} />
+        <View style={{ width: "80%", height: 12, backgroundColor: "#E5E7EB", borderRadius: 4 }} />
+      </View>
+    </ScrollView>
+  );
+
   return (
     <SafeAreaView style={s.container} edges={["top", "bottom"]}>
       <Stack.Screen options={{ headerShown: false }} />
@@ -176,10 +206,7 @@ export default function CheckoutScreen() {
       </View>
 
       {isLoading ? (
-        <View style={s.loadingCont}>
-          <ActivityIndicator size="large" color={THEME.colors.primary} />
-          <Text style={s.loadingText}>Loading checkout...</Text>
-        </View>
+        renderSkeletons()
       ) : (
         <View style={{ flex: 1 }}>
           <ScrollView contentContainerStyle={s.scrollContent} showsVerticalScrollIndicator={false}>
