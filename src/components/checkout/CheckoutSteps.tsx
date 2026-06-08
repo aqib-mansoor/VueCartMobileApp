@@ -31,7 +31,15 @@ export const CheckoutSteps: React.FC = () => {
                 step.done && s.stepDone,
                 (step as any).active && s.stepActive,
               ]}
-            />
+            >
+              {step.done ? (
+                <Check size={14} color="#FFF" strokeWidth={3} />
+              ) : (
+                <Text style={[s.stepNum, (step as any).active && s.stepNumActive]}>
+                  {step.num}
+                </Text>
+              )}
+            </View>
             <Text
               style={[
                 s.stepLabel,
