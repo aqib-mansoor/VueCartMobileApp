@@ -31,34 +31,94 @@ VueCart is a premium, state-of-the-art e-commerce mobile application built on to
 
 ## 📂 Directory Structure
 
-Here is a breakdown of the core frontend architecture:
+Here is a comprehensive breakdown of the core frontend architecture:
 
 ```text
 Frontend/
-├── assets/                 # App icons, splash screens, and images
+├── assets/                       # App icons, splash screens, and image assets
 ├── src/
-│   ├── app/                # Expo Router App Entry & Routes
-│   │   ├── (auth)/         # Authentication Screens (login, register)
-│   │   ├── (screens)/      # Main Screens (home, cart, checkout, favorites, orders, profile)
-│   │   ├── _layout.tsx     # Global Providers (Redux, Toast, Fonts)
-│   │   └── index.tsx       # Root gateway check
+│   ├── app/                      # Expo Router app entry & routes (file-based navigation)
+│   │   ├── (auth)/               # Authentication route screens
+│   │   │   ├── login.tsx         # Sign In screen
+│   │   │   └── register.tsx      # Sign Up screen
+│   │   ├── (screens)/            # Main app route screens
+│   │   │   ├── cart.tsx          # Shopping Cart screen
+│   │   │   ├── checkout.tsx      # Order Checkout screen
+│   │   │   ├── favorites.tsx     # Saved Favorites screen
+│   │   │   ├── home.tsx          # Store Home / Product Browsing screen
+│   │   │   ├── orders.tsx        # Past and Active Orders list screen
+│   │   │   └── profile.tsx       # User Profile & Address settings screen
+│   │   ├── _layout.tsx           # Application layout wrapper & global providers (Redux, Toast)
+│   │   └── index.tsx             # Root gateway check/redirect logic
 │   │
-│   ├── components/         # Reusable Component Modules
-│   │   ├── home/           # Home sub-components (ProductCard, WelcomeHeader, AutoPromoSlider)
-│   │   ├── ui/             # Core UI components (Toast, ConfirmDialog)
-│   │   └── cart/checkout/  # Feature-specific components
+│   ├── components/               # Modular UI Components grouped by feature
+│   │   ├── cart/                 # Cart sub-components
+│   │   │   ├── CartEmptyState.tsx
+│   │   │   ├── CartHeader.tsx
+│   │   │   └── CartItemRow.tsx
+│   │   ├── checkout/             # Checkout sub-components
+│   │   │   ├── CheckoutAddressSection.tsx
+│   │   │   ├── CheckoutHeader.tsx
+│   │   │   ├── CheckoutSteps.tsx
+│   │   │   └── OrderSuccessOverlay.tsx
+│   │   ├── favorites/            # Favorites sub-components
+│   │   │   ├── FavoritesEmptyState.tsx
+│   │   │   └── FavoritesHeader.tsx
+│   │   ├── home/                 # Dashboard sub-components
+│   │   │   ├── ActiveOrderTracker.tsx
+│   │   │   ├── AutoPromoSlider.tsx
+│   │   │   ├── ProductCard.tsx
+│   │   │   ├── ProductDetailModal.tsx
+│   │   │   └── WelcomeHeader.tsx
+│   │   ├── orders/               # Orders sub-components
+│   │   │   ├── OrderCard.tsx
+│   │   │   ├── OrdersEmptyState.tsx
+│   │   │   ├── OrdersHeader.tsx
+│   │   │   └── ReviewModal.tsx
+│   │   ├── profile/              # Profile & settings sub-components
+│   │   │   ├── AddressPanel.tsx
+│   │   │   ├── EditProfileModal.tsx
+│   │   │   ├── FavouritesPanel.tsx
+│   │   │   ├── InfoModal.tsx
+│   │   │   ├── MenuItem.tsx
+│   │   │   ├── ProfileHeader.tsx
+│   │   │   └── ProfileHero.tsx
+│   │   └── ui/                   # Shared design system components
+│   │       ├── ConfirmDialog.tsx
+│   │       └── Toast.tsx
 │   │
-│   ├── redux/              # Redux State Management
-│   │   ├── action-types.ts # Action type definitions
-│   │   ├── action.ts       # Async API Thunks & Action dispatchers
-│   │   ├── reducer.ts      # Store Reducers (Auth, Cart, Favorites, Orders, Cache)
-│   │   └── store.ts        # Configured Redux Store & hooks
+│   ├── constants/                # Configuration and Application constants
+│   │   ├── endpoints.ts          # API Endpoints registry
+│   │   ├── images.ts             # Image asset declarations
+│   │   ├── routes.ts             # App route mapping configurations
+│   │   └── theme.ts              # Global design system color and font tokens
 │   │
-│   ├── utils/              # Utility Libraries
-│   │   ├── api.ts          # Centralized API client (GET Cache, Token injection)
-│   │   ├── apiLogger.ts    # Custom API Logger formatting requests/responses
-│   │   └── orderUtils.ts   # Helper utilities for tracking & ordering
-│   └── styles/             # Common theme tokens & styling
+│   ├── hooks/                    # Custom React Hooks (Business Logic separation)
+│   │   ├── useCartData.ts        # Cart CRUD actions and loader hook
+│   │   ├── useCheckoutData.ts    # Shipping address and order checkout validation hook
+│   │   ├── useFavoritesData.ts   # Favorites toggling and fetching state hook
+│   │   ├── useHomeData.ts        # Home products loading, categories filter and search hook
+│   │   ├── useOrdersData.ts      # Active/Past orders history & reviews hook
+│   │   └── useProfileData.ts     # User edit profile and address storage hook
+│   │
+│   ├── redux/                    # Redux Global State Management
+│   │   ├── action-types.ts       # Central action type definitions
+│   │   ├── action.ts             # Thunk actions and dispatchers
+│   │   ├── reducer.ts            # Root combined reducers (auth, cart, favorites, orders, cache)
+│   │   └── store.ts              # Redux store config and typed react hooks
+│   │
+│   ├── styles/                   # Modular layout design stylesheets
+│   │   ├── cartStyles.ts
+│   │   ├── checkoutStyles.ts
+│   │   ├── favoritesStyles.ts
+│   │   ├── homeStyles.ts
+│   │   ├── ordersStyles.ts
+│   │   └── profileStyles.ts
+│   │
+│   └── utils/                    # Shared Utility methods and helpers
+│       ├── api.ts                # Custom API client with interceptors & caching
+│       ├── apiLogger.ts          # Advanced Request & Response terminal logging
+│       └── orderUtils.ts         # Formatting and mapping of order data
 ```
 
 ---
