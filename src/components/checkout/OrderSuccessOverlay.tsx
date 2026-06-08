@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { StyleSheet, View, Text, ScrollView, Image, Animated, Easing, TouchableOpacity } from "react-native";
 import { Check, ShoppingBag, Truck, Gift, CheckCircle } from "lucide-react-native";
 import { StatusBar } from "expo-status-bar";
@@ -6,6 +6,8 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { THEME } from "../../constants/theme";
 import { getProductImage } from "../home/ProductCard";
 import { formatOrderNumber } from "../../utils/orderUtils";
+import { apiClient } from "../../utils/api";
+import { API_ENDPOINTS } from "../../constants/endpoints";
 
 type CartItem = {
   cart_item_id: number;
@@ -33,6 +35,7 @@ export const OrderSuccessOverlay: React.FC<OrderSuccessOverlayProps> = ({
   onTrackOrder,
   onContinueShopping,
 }) => {
+  const [orderStatus, setOrderStatus] = useState<string>("pending");
   // Local Success animations
   const checkScale = useRef(new Animated.Value(0)).current;
   const checkRotate = useRef(new Animated.Value(0)).current;
@@ -52,7 +55,26 @@ export const OrderSuccessOverlay: React.FC<OrderSuccessOverlayProps> = ({
         Animated.timing(cardOpacity, { toValue: 1, duration: 400, useNativeDriver: true }),
       ]),
     ]).start();
-  }, []);
+
+    if (!placedOrderId) return;
+    const checkStatus = async () => {
+      try {
+        const res = await apiClient.get(`${API_ENDPOINTS.ORDERS}/${placedOrderId}?nocache=${Date.now()}`);
+        if (res.ok) {
+          const d = await res.json();
+          const latest = d.order || d.data;
+          if (latest && latest.status) {
+            setOrderStatus(latest.status.toLowerCase());
+          }
+        }
+      } catch (err) {
+        console.warn("Failed to check status:", err);
+      }
+    };
+    checkStatus();
+    const interval = setInterval(checkStatus, 5000);
+    return () => clearInterval(interval);
+  }, [placedOrderId]);
 
   const rotation = checkRotate.interpolate({
     inputRange: [0, 1],
@@ -94,9 +116,9 @@ export const OrderSuccessOverlay: React.FC<OrderSuccessOverlayProps> = ({
           <Text style={s.timelineTitle}>Order Timeline</Text>
           {[
             { label: "Order Confirmed", sub: "Just now", done: true, icon: Check },
-            { label: "Being Packed", sub: "Estimated in 2 hours", done: false, icon: ShoppingBag },
-            { label: "Shipped", sub: "Estimated tomorrow", done: false, icon: Truck },
-            { label: "Delivered", sub: deliveryDate, done: false, icon: Gift },
+            { label: "Being Packed", sub: ["processing", "shipped", "delivered", "completed"].includes(orderStatus) ? "Completed" : "Estimated in 2 hours", done: ["processing", "shipped", "delivered", "completed"].includes(orderStatus), icon: ShoppingBag },
+            { label: "Shipped", sub: ["shipped", "delivered", "completed"].includes(orderStatus) ? "Completed" : "Estimated tomorrow", done: ["shipped", "delivered", "completed"].includes(orderStatus), icon: Truck },
+            { label: "Delivered", sub: ["delivered", "completed"].includes(orderStatus) ? "Delivered" : deliveryDate, done: ["delivered", "completed"].includes(orderStatus), icon: Gift },
           ].map((step, idx) => (
             <View key={idx} style={s.timelineRow}>
               <View style={s.timelineLeft}>
@@ -131,8 +153,12 @@ export const OrderSuccessOverlay: React.FC<OrderSuccessOverlayProps> = ({
               <Text style={s.successItemPrice}>${(Number(item.price) * item.quantity).toFixed(2)}</Text>
             </View>
           ))}
-          <View style={s.successTotalRow}>
-            <Text style={s.successTotalLabel}>Total Paid</Text>
+          <View style={[s.successTotalRow, { borderTopWidth: 1, borderColor: "#F1F5F9", paddingTop: 10 }]}>
+            <Text style={s.successTotalLabel}>Payment Method</Text>
+            <Text style={{ fontSize: 13, fontWeight: "700", color: THEME.colors.textSecondary }}>Cash on Delivery (COD)</Text>
+          </View>
+          <View style={[s.successTotalRow, { marginTop: 6 }]}>
+            <Text style={s.successTotalLabel}>Total Amount</Text>
             <Text style={s.successTotalVal}>${finalTotal.toFixed(2)}</Text>
           </View>
         </Animated.View>

@@ -33,6 +33,8 @@ export const useCheckoutData = () => {
   const [isSavingAddress, setIsSavingAddress] = useState(false);
   const [orderSuccess, setOrderSuccess] = useState(false);
   const [placedOrderId, setPlacedOrderId] = useState<number | null>(null);
+  const [successCartItems, setSuccessCartItems] = useState<any[]>([]);
+  const [successTotalAmount, setSuccessTotalAmount] = useState<number>(0);
 
   const cartItems = useAppSelector((state) => state.cart.items);
   const totalAmount = useAppSelector((state) => state.cart.meta.grand_total);
@@ -100,6 +102,8 @@ export const useCheckoutData = () => {
       });
       if (res.ok) {
         const d = await res.json();
+        setSuccessCartItems([...cartItems]);
+        setSuccessTotalAmount(totalAmount);
         setPlacedOrderId(d.order?.id || d.data?.id);
         setOrderSuccess(true);
         dispatch(fetchCart());
@@ -119,6 +123,9 @@ export const useCheckoutData = () => {
   const deliveryDate = new Date(Date.now() + 4 * 86400000).toLocaleDateString("en-US", {
     weekday: "long", month: "short", day: "numeric",
   });
+
+  const successDiscount = successTotalAmount * 0.05;
+  const successFinalTotal = successTotalAmount - successDiscount;
 
   return {
     router,
@@ -140,6 +147,10 @@ export const useCheckoutData = () => {
     discount,
     finalTotal,
     deliveryDate,
+    successCartItems,
+    successTotalAmount,
+    successDiscount,
+    successFinalTotal,
 
     setSelectedAddressId,
     setShowNewAddressForm,

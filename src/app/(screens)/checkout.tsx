@@ -42,6 +42,8 @@ export default function CheckoutScreen() {
     discount,
     finalTotal,
     deliveryDate,
+    successCartItems,
+    successFinalTotal,
 
     setSelectedAddressId,
     setShowNewAddressForm,
@@ -58,8 +60,8 @@ export default function CheckoutScreen() {
     return (
       <OrderSuccessOverlay
         placedOrderId={placedOrderId}
-        cartItems={cartItems}
-        finalTotal={finalTotal}
+        cartItems={successCartItems}
+        finalTotal={successFinalTotal}
         deliveryDate={deliveryDate}
         onTrackOrder={() => router.replace(ROUTES.ORDERS as any)}
         onContinueShopping={() => router.replace(ROUTES.HOME as any)}
