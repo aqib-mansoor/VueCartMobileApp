@@ -105,12 +105,13 @@ export const useOrdersData = () => {
       type: "danger",
       onConfirm: async () => {
         try {
-          const res = await apiClient.post(`${API_ENDPOINTS.ORDERS}/${orderId}/cancel`, {});
+          const res = await apiClient.put(`${API_ENDPOINTS.ORDERS}/${orderId}/cancel`, {});
           if (res.ok) {
             setOrders(p => p.map(o => o.id === orderId ? { ...o, status: "cancelled" } : o));
             showToast({ message: "Order cancelled successfully", type: "success" });
           } else {
-            showToast({ message: "Failed to cancel order", type: "error" });
+            const errData = await res.json().catch(() => ({}));
+            showToast({ message: errData.message || "Failed to cancel order", type: "error" });
           }
         } catch {
           showToast({ message: "Network error — try again", type: "error" });
