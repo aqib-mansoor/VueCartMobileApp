@@ -11,7 +11,8 @@ import { Platform } from "react-native";
 import { apiLogger } from "./apiLogger";
 
 // Default Base URL read from environment variables or hardcoded local server
-const BASE_URL = process.env.EXPO_PUBLIC_API_URL || "http://192.168.18.235:8000/api";
+const BASE_URL = process.env.EXPO_PUBLIC_API_URL || "http://10.10.20.238:8000/api";
+//const BASE_URL = process.env.EXPO_PUBLIC_API_URL || "http://192.168.18.235:8000/api";
 
 type RequestOptions = Omit<RequestInit, "body"> & {
   body?: any;
