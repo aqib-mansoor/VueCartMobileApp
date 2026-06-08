@@ -44,6 +44,7 @@ import { fetchFavorites, login as loginAction, logout as logoutAction } from "..
 import { useAppDispatch, useAppSelector } from "../../redux/store";
 import { apiClient } from "../../utils/api";
 import { InfoModal, InfoModalType } from "../../components/profile/InfoModal";
+import { EditProfileModal } from "../../components/profile/EditProfileModal";
 
 type Address = {
   id: number;
@@ -63,16 +64,8 @@ export default function ProfileScreen() {
   const { showConfirm } = useConfirm();
 
   const [isLoading, setIsLoading] = useState(!user);
-  const [isSaving, setIsSaving] = useState(false);
-  const [showEditForm, setShowEditForm] = useState(false);
   const [activeModal, setActiveModal] = useState<InfoModalType>(null);
-
-  // Form inputs
-  const [name, setName] = useState(user?.name || "");
-  const [email, setEmail] = useState(user?.email || "");
-  const [age, setAge] = useState(user?.age ? String(user?.age) : "");
-  const [phone, setPhone] = useState(user?.phone || "");
-  const [password, setPassword] = useState("");
+  const [showEditModal, setShowEditModal] = useState(false);
 
   // Addresses
   const [addresses, setAddresses] = useState<Address[]>([]);
@@ -98,10 +91,9 @@ export default function ProfileScreen() {
       if (res.ok) {
         const data = await res.json();
         const profile = data.records || data.user || data.data || {};
-        setName(profile.name || "");
-        setEmail(profile.email || "");
-        setAge(profile.age ? String(profile.age) : "");
-        setPhone(profile.phone || "");
+        if (authToken) {
+          dispatch(loginAction(authToken, profile));
+        }
       }
 
       const addressRes = await apiClient.get(API_ENDPOINTS.ADDRESSES);
@@ -115,46 +107,6 @@ export default function ProfileScreen() {
       console.error("Error fetching profile screen details:", err);
     } finally {
       setIsLoading(false);
-    }
-  };
-
-  const handleSaveProfile = async () => {
-    if (!name.trim() || !email.trim()) {
-      showToast({ message: "Name and email are required", type: "warning" });
-      return;
-    }
-
-    setIsSaving(true);
-    try {
-      const payload: any = { name, email, phone };
-      if (age.trim()) payload.age = Number(age);
-      if (password.trim()) payload.password = password;
-
-      const res = await apiClient.put(API_ENDPOINTS.PROFILE, payload);
-      if (res.ok) {
-        const data = await res.json();
-        const updatedUser = data.user || data.data || { name, email, age: Number(age), phone };
-
-        if (authToken) {
-          await dispatch(loginAction(authToken, {
-            name: updatedUser.name || name,
-            email: updatedUser.email || email,
-            age: updatedUser.age || Number(age) || undefined,
-            phone: updatedUser.phone || phone,
-          }));
-        }
-
-        setPassword("");
-        setShowEditForm(false);
-        showToast({ message: "Profile updated successfully!", type: "success" });
-      } else {
-        const data = await res.json().catch(() => ({}));
-        showToast({ message: data.message || "Failed to update profile", type: "error" });
-      }
-    } catch (err) {
-      showToast({ message: "Network connectivity issue", type: "error" });
-    } finally {
-      setIsSaving(false);
     }
   };
 
@@ -220,7 +172,7 @@ export default function ProfileScreen() {
       icon: <Settings size={20} color="#64748B" />,
       label: "Edit Profile",
       subtitle: "Update name, email, password",
-      onPress: () => setShowEditForm(!showEditForm),
+      onPress: () => setShowEditModal(true),
     },
   ];
 
@@ -277,17 +229,10 @@ export default function ProfileScreen() {
             <View style={styles.heroGradient}>
               <View style={styles.largeAvatar}>
                 <Text style={styles.largeAvatarText}>
-                  {name ? name[0].toUpperCase() : "U"}
+                  {user?.name ? user.name[0].toUpperCase() : "U"}
                 </Text>
               </View>
-              <Text style={styles.profileName}>{name || "User Name"}</Text>
-              <Text style={styles.profileEmail}>{email || "user@example.com"}</Text>
-              {phone ? <Text style={[styles.profileEmail, { marginTop: 2 }]}>{phone}</Text> : null}
-              {age ? (
-                <View style={styles.ageBadge}>
-                  <Text style={styles.ageBadgeText}>Age: {age}</Text>
-                </View>
-              ) : null}
+              <Text style={styles.profileName}>{user?.name || "User Name"}</Text>
             </View>
           </View>
 
@@ -305,101 +250,7 @@ export default function ProfileScreen() {
             ))}
           </View>
 
-          {/* Collapsible Edit Profile Form */}
-          {showEditForm && (
-            <View style={styles.formCard}>
-              <Text style={styles.formSectionTitle}>Account Details</Text>
 
-              <View style={styles.inputContainer}>
-                <View style={styles.inputIcon}>
-                  <User size={18} color={THEME.colors.textSecondary} />
-                </View>
-                <TextInput
-                  style={styles.input}
-                  placeholder="Full Name"
-                  placeholderTextColor={THEME.colors.textMuted}
-                  value={name}
-                  onChangeText={setName}
-                />
-              </View>
-
-              <View style={styles.inputContainer}>
-                <View style={styles.inputIcon}>
-                  <Mail size={18} color={THEME.colors.textSecondary} />
-                </View>
-                <TextInput
-                  style={styles.input}
-                  placeholder="Email Address"
-                  placeholderTextColor={THEME.colors.textMuted}
-                  keyboardType="email-address"
-                  value={email}
-                  onChangeText={setEmail}
-                />
-              </View>
-
-              <View style={styles.inputContainer}>
-                <View style={styles.inputIcon}>
-                  <Calendar size={18} color={THEME.colors.textSecondary} />
-                </View>
-                <TextInput
-                  style={styles.input}
-                  placeholder="Age"
-                  placeholderTextColor={THEME.colors.textMuted}
-                  keyboardType="numeric"
-                  value={age}
-                  onChangeText={setAge}
-                />
-              </View>
-
-              <View style={styles.inputContainer}>
-                <View style={styles.inputIcon}>
-                  <Phone size={18} color={THEME.colors.textSecondary} />
-                </View>
-                <TextInput
-                  style={styles.input}
-                  placeholder="Phone Number"
-                  placeholderTextColor={THEME.colors.textMuted}
-                  keyboardType="phone-pad"
-                  value={phone}
-                  onChangeText={setPhone}
-                />
-              </View>
-
-              <Text style={[styles.formSectionTitle, { marginTop: 12 }]}>
-                Change Password (Optional)
-              </Text>
-
-              <View style={styles.inputContainer}>
-                <View style={styles.inputIcon}>
-                  <Key size={18} color={THEME.colors.textSecondary} />
-                </View>
-                <TextInput
-                  style={styles.input}
-                  placeholder="Enter new password"
-                  placeholderTextColor={THEME.colors.textMuted}
-                  secureTextEntry
-                  value={password}
-                  onChangeText={setPassword}
-                />
-              </View>
-
-              <TouchableOpacity
-                style={styles.saveButton}
-                onPress={handleSaveProfile}
-                disabled={isSaving}
-                activeOpacity={0.9}
-              >
-                {isSaving ? (
-                  <ActivityIndicator size="small" color="#FFFFFF" />
-                ) : (
-                  <>
-                    <Save size={18} color="#FFFFFF" style={{ marginRight: 8 }} />
-                    <Text style={styles.saveButtonText}>Save Profile Changes</Text>
-                  </>
-                )}
-              </TouchableOpacity>
-            </View>
-          )}
 
           {/* Saved Addresses Panel */}
           <View style={styles.sectionCard}>
@@ -610,6 +461,12 @@ export default function ProfileScreen() {
         type={activeModal}
         visible={activeModal !== null}
         onClose={() => setActiveModal(null)}
+      />
+
+      {/* Edit Profile Modal */}
+      <EditProfileModal
+        visible={showEditModal}
+        onClose={() => setShowEditModal(false)}
       />
     </SafeAreaView>
   );
@@ -898,5 +755,29 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "800",
     color: THEME.colors.error,
+  },
+  infoDetailRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: "#F1F5F9",
+  },
+  infoDetailTextCol: {
+    flex: 1,
+  },
+  infoDetailLabel: {
+    fontSize: 10,
+    fontWeight: "700",
+    color: "#94A3B8",
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+  },
+  infoDetailValue: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: "#334155",
+    marginTop: 2,
   },
 });
